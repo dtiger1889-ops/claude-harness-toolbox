@@ -1,0 +1,53 @@
+Last updated: [YYYY-MM-DD HH:MM UTC]
+<!-- TIMESTAMP ONLY. This is the verification stamp, not a change summary. An
+optional bare (vN) tag is allowed if this project versions its CLAUDE.md. What
+changed goes in ## Harness changelog, never here. -->
+
+## Status
+[1 line: the PRESENT state only — where the project sits right now. Prefer concrete
+state ("dashboard shipped, backfill pending") over vague labels ("in progress").
+No past ("just shipped X" → changelog), no future ("X pending / next" → Next step or
+Open threads). For live-data projects (a running bot/dashboard), point at the live
+source instead of quoting numbers that go stale.]
+
+## Goal
+[1-3 lines: what success looks like for this project. The thing you'd write on a whiteboard before starting.]
+
+## Research
+[For a new project or a new milestone, populate this first — before any implementation. Bullets for: prior art / what's been tried, constraints / non-negotiables, open questions / unknowns, sources consulted. Once the milestone ships, either prune to one-line findings or fold into Key decisions and clear the section.]
+- [bullet]
+- [bullet]
+
+## Key decisions
+[LIVE, still-contestable choices a future session shouldn't re-litigate. NOT a rulebook,
+NOT an archive: a decision that hardened into a standing rule → move it to this project's
+CLAUDE.md or a decisions/ doc; a closed/done decision → its record is the changelog entry,
+prune it (no "Closed this session" graveyard). Litmus: still contestable AND recorded only here?]
+- [bullet: a choice already made, with why if non-obvious.]
+- **Failed approaches:** [what was tried and abandoned, and why — a future session can't reconstruct this from files. Include only when relevant.]
+
+## Open threads
+- [bullet: a discrete piece of OPEN work still to do. Specific enough that "done" is checkable. Reads like a to-do list, never a graveyard of finished items.]
+- [bullet]
+
+## Files that matter
+- `path/to/file` — [1-line why]
+- `path/to/file` — [1-line why]
+
+## Next step
+[1 line: the single literal next action when this session resumes. This section, not Status, owns "what's next."]
+
+<!--
+Overwrite in place; don't append. Hard cap: 120 lines AND ~30KB. Goal is compressed
+state, not a log. The `Last updated:` line above doubles as the verification
+timestamp — touching this file means you re-read project state.
+
+If `Last updated:` is older than 30 days at session start, verify it against
+reality before acting on what it claims.
+
+Add a `## Harness changelog` section at the END if/when the project's CLAUDE.md gets
+versioned up — newest-first dated `### YYYY-MM-DD -- summary (vN)` entries; existing
+entries are IMMUTABLE (never summarize/merge/retype them). On overflow past the caps,
+archive the OLDEST entries verbatim to archive/harness_changelog.md via
+~/.claude/skills/checkpoint/archive-changelog.ps1 — never hand-delete content.
+-->

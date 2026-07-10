@@ -1,0 +1,16 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Cloud-sync transients
+.tmp.*
+.tmp.drivedownload/
+.tmp.driveupload/
+
+# Runtime artifacts the mover script creates next to itself (never ship these)
+skills/checkpoint/backups/
+skills/checkpoint/archive-changelog.log

@@ -1,0 +1,32 @@
+# Workspace-baseline .gitignore — rename to `.gitignore` when copying.
+# v1 — 2026-04-29
+
+# ---- Editor / OS noise ----
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# ---- Common landmines ----
+node_modules/
+*.log
+.env
+.env.*
+__pycache__/
+*.pyc
+.pytest_cache/
+dist/
+build/
+
+# ---- Cloud-sync transients (Google Drive / OneDrive / Dropbox) ----
+.tmp.*
+.tmp.drivedownload/
+.tmp.driveupload/
+
+# ---- Harness state ----
+# CHECKPOINT.md is gitignored by default — it changes every session and
+# would noise up history. REMOVE this line for repos where you want
+# resumability across machines (home PC + cloud Claude Code sandbox).
+CHECKPOINT.md

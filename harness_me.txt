@@ -1,0 +1,1558 @@
+# harness_me.txt — Claude Code Workspace Harness Setup Guide
+
+<!-- ============================================================
+  HUMAN README
+  This file is a setup guide you hand to Claude Code (the CLI or
+  desktop app). Open a new session, drag this file in (or paste its
+  contents), and say: "Read this and set up my workspace."
+
+  You can also read this file in any text editor — the comments
+  explain every step in plain English.
+
+  Last updated 2026-06-23. The biggest change since the 2026-06-09 version:
+  a third hook — a PreToolUse "orientation gate" — now structurally enforces
+  the read-CHECKPOINT-before-acting rule that earlier versions left to the
+  model's own judgment (which a 50-session audit found it applied
+  unreliably). See Section 4 and Section 8d. The hook section itself was
+  rebuilt in the prior version after the old design silently failed in two
+  ways (also Section 4).
+  ============================================================ -->
+
+## What this file does
+
+This guide installs a lightweight "harness" on your Claude Code setup — a small set of
+files and hooks that make Claude dramatically more effective across long or multi-session
+projects.
+
+**The core problem it solves:** Claude's context window is finite and resets between
+sessions. Without a harness, Claude starts from scratch every time, re-reads the same
+files, and has no reliable way to know what was done, what's open, or where to pick up.
+The harness gives Claude a structured memory system that survives session resets,
+compaction, and handoffs.
+
+**What gets installed:**
+- A `CLAUDE.md` at your workspace root (project ledger + shared rules — what projects
+  exist, how Claude should treat them)
+- A `CHECKPOINT.md` at workspace root (mutable top-level state)
+- A per-project `CLAUDE.md` (stable facts about that project) and `CHECKPOINT.md`
+  (its mutable state) inside each project folder
+- Hooks in your **user-level** `~/.claude/settings.json`. Two are the always-on core:
+  they surface the relevant CHECKPOINT automatically at session start and before context
+  compaction. Two more are optional but recommended (Section 8d): a PreToolUse *guard*
+  that blocks mechanically-breaking tool input, and a PreToolUse *orientation gate* that
+  blocks the first state-changing action until CHECKPOINT has been read. (User-level, not
+  workspace-level — Section 4 explains why this distinction is load-bearing.)
+
+**Layout principle:** project folders are *direct children* of your workspace root.
+There is no `Projects/` subfolder — that's an extra layer that doesn't pay for itself.
+If you also use Cowork, give it its own sibling folder (`Cowork/`) so its workspace
+doesn't tangle with your Claude Code project work. See Section 8b.
+
+**Path convention:** throughout this guide, `~/Claude/` is shorthand for *your* workspace
+root — substitute whatever path you pick. On Mac/Linux that's literally `~/Claude/`; on
+Windows the Section 0 default is `%USERPROFILE%\Documents\Claude\`. Those two are different
+folders on Windows (`~` is your home dir, not your Documents dir), so pick one root and use
+it consistently wherever a diagram shows `~/Claude/`.
+
+**Nothing is deleted.** All existing files stay. The harness only adds new files.
+
+---
+
+## INSTRUCTIONS FOR CLAUDE
+
+*If you are Claude reading this: follow the sections below in order. Start by asking
+the user which mode they want (Section 1), then proceed according to that mode.*
+
+*Platform note: this guide is cross-platform but **Windows-first** — the PowerShell hook
+scripts are the maintainer's live, tested reference. Mac/Linux equivalents are provided
+(bash) but were NOT verified on macOS/Linux hardware. If you're setting up on Mac/Linux,
+use the bash versions throughout (Section 4 and the orientation gate in Section 8d), treat
+them as faithful ports to confirm rather than battle-tested code, and run the Section 6
+checklist — especially the orientation-gate test (item 5) — before relying on them. Ask the
+user which OS you're on if it isn't obvious.*
+
+---
+
+## Section 0 — Back Up Your Existing Layout (Recommended)
+
+<!-- NOTE FOR HUMANS:
+  This step is optional but strongly recommended if you already have files
+  in your Claude workspace folder. It creates a plain-text snapshot listing
+  everything that existed *before* the harness was installed.
+
+  Your original files are never modified or deleted — the harness only adds
+  new files. After setup, Claude also writes a file called
+  HARNESS_files_created.md that lists every file it created during setup.
+  To undo the harness completely, just delete the files in that list.
+  Your original files will be exactly as they are now.
+
+  If you have a Google Drive / OneDrive / Dropbox sync set up on the workspace,
+  or external drives you can copy to, that's an even stronger backup than the
+  snapshot file. Use whichever you have.
+-->
+
+**Claude instructions:**
+Before making any changes, ask the user: "Do you want me to scan your existing
+workspace folder and create a backup snapshot first? It's non-destructive — I'll
+just list what's already there."
+
+If yes:
+1. Ask for their workspace path — this is the `~/Claude/` root referenced throughout the
+   guide (default: `~/Claude/` on Mac/Linux, `%USERPROFILE%\Documents\Claude\` on Windows).
+   Whatever they pick, use it consistently in place of `~/Claude/` in the diagrams below.
+2. List all files and folders found (one level deep; recurse into subfolders only
+   if the user requests it).
+3. Write a file named `BACKUP_snapshot_YYYY-MM-DD.md` in the workspace root listing
+   everything found with its path.
+4. Tell the user: "Snapshot saved — this records everything that existed before
+   setup. After installation, I'll also write HARNESS_files_created.md listing
+   every file I add. To undo the harness later, delete the files in that list.
+   Nothing in your snapshot will have been touched."
+
+---
+
+## Section 1 — Choose Your Mode
+
+<!-- NOTE FOR HUMANS:
+  Pick whichever mode matches your comfort level. You can always switch
+  mid-setup — just tell Claude "switch to Mode C" and it will slow down.
+
+  Mode A: You're new to Claude Code, or you just want it done.
+  Mode B: You understand the concept and want to see the plan before it runs.
+  Mode C: You've been using Claude Code for a while and want to migrate
+          carefully without disrupting anything you already have.
+-->
+
+**Claude instructions:** Present the three options below to the user and ask them to
+choose one. Do not proceed until they pick a mode.
+
+---
+
+### Mode A — Trust & Go *(for new or first-time Claude Code users)*
+
+> Best if you just started using Claude Code and have little or no existing setup.
+> Claude does the work; you watch and approve at the end.
+
+**Claude instructions for Mode A:**
+1. Ask one question: "What's the path to your workspace folder?"
+   (Offer the platform default if they're not sure.)
+2. Say: "I'll build the harness now. I'll show you every file I create.
+   Tell me to stop at any point."
+3. Build all files described in Section 3 without further interruptions.
+4. When done, run through Section 6 (First-Session Checklist) to verify everything works.
+5. Offer a brief tour of Section 7 (Config Walkthrough) if the user wants it.
+
+---
+
+### Mode B — Plan, Review, Execute *(for users who trust the concept but want visibility)*
+
+> Best if you understand what CLAUDE.md and hooks are, want to approve the plan
+> before anything is created, and want a pause-and-explain at each phase.
+
+**Claude instructions for Mode B:**
+1. Ask for the workspace path.
+2. Present the complete file list from Section 3 as a numbered plan. Wait for approval.
+3. Build in three phases, pausing after each:
+   - **Phase 1 — Scaffold:** Create the workspace `CLAUDE.md` (project ledger) and
+     `CHECKPOINT.md` at the workspace root.
+   - **Phase 2 — Hooks:** Merge the SessionStart and PreCompact hooks into the
+     user-level `~/.claude/settings.json` (see Section 4 for why user-level).
+   - **Phase 3 — First project:** Walk the user through creating their first project
+     folder (a direct child of the workspace) with its own CLAUDE.md and CHECKPOINT.md.
+4. After each phase, summarize what was created and why before continuing.
+5. End with Section 6 checklist and offer Section 7.
+
+---
+
+### Mode C — Incremental *(for existing users migrating carefully)*
+
+> Best if you've been using Claude Code for a while, have your own patterns,
+> and want to adopt only what makes sense without breaking what works.
+
+**Claude instructions for Mode C:**
+1. Ask for the workspace path AND ask: "Tell me briefly how you currently organize
+   your Claude work. Any folders, files, or habits I should know about?"
+2. Propose only *one action at a time* — describe the file, explain why it helps,
+   and wait for an explicit "go ahead" before creating it.
+3. If the user says "skip that" or "I already have something like that," respect it
+   and move on.
+4. After each file is created, pause and ask: "Want to continue to the next step,
+   or pause here?"
+5. End with Section 6 checklist. Offer Section 7 only if the user asks.
+
+---
+
+## Section 2 — Core Concepts
+
+<!-- NOTE FOR HUMANS:
+  This section explains the philosophy behind each file. You don't need to
+  memorize it — it's here so you understand why the harness is built the way
+  it is. The short version: Claude's context window is working memory, not
+  storage. These files are the storage layer.
+-->
+
+**CLAUDE.md** — A short instruction file (**hard cap: ≤ 30 lines**) Claude reads at
+the start of every session. It contains *stable facts only*: what the workspace is for,
+which projects exist, key constraints, how to find things. It never contains mutable
+state (what's done, what's in progress) — that goes in CHECKPOINT.md. Keep it short
+because Claude loads it on every turn; a bloated CLAUDE.md wastes tokens on every
+response. If a project's CLAUDE.md grows past 30 lines, move the surplus into a
+project-scoped artifact (e.g., `<project>/INVENTORY.md`) and reference it. The 30-line
+cap is empirical, not arbitrary — see "When the harness pays off" below.
+
+The workspace-root `CLAUDE.md` plays a dual role: it's both the workspace overview AND
+the project ledger (the table of which projects exist, what each is for). Earlier
+versions of this harness split those into two files (one at root, one in `Projects/`);
+combining them removes a redirection layer that didn't earn its keep.
+
+**CHECKPOINT.md** — A compressed state file that captures where a project stands right
+now: status, open threads, next step, key decisions. It is *overwritten in place* each
+time — not appended to. Appending creates a log that grows without bound and defeats the
+compression goal. Think of it as a whiteboard that gets erased and redrawn, not a notebook.
+
+Two budgets, both real:
+- **Hard cap: 120 lines.** (The maintainer started at ~80; dense back-to-back work cycles
+  proved that too tight, and the file drifted to 200+ before a hard cleanup. 120 with a
+  real overflow remedy holds; a soft "~80" did not.) When an update would push past 120,
+  the first move is to **archive the oldest changelog entries** to a per-project
+  `archive/harness_changelog.md` (keep the latest 1–2 inline plus a one-line pointer),
+  then compress Open threads, then ask the user before overflowing.
+- **Byte budget: keep it under ~30KB.** Line counts can't see this one. Claude Code's
+  Read channel tolerates ~50KB and *flags* partial reads; hook output is capped far lower
+  and truncates *silently* (see Section 4). A CHECKPOINT can be under the line cap and
+  still over the byte ceiling if each entry is a dense paragraph. Same archive remedy.
+
+**Hooks (user-level `~/.claude/settings.json`)** — The two always-on behaviors:
+- **SessionStart:** When you open a session inside a project folder, a hook prints a
+  small *receipt* — "CHECKPOINT.md present: N bytes / N lines. Read it to EOF before
+  acting." Claude then Reads the file itself. The receipt pattern (rather than printing
+  the file's contents into context) exists because Claude Code truncates large hook
+  output to a ~2KB preview that *looks* complete — Section 4 has the full story.
+- **PreCompact:** When context is about to be compressed (/compact or auto-compact),
+  Claude is reminded to update CHECKPOINT.md first, so the compressed session starts
+  from an accurate state.
+
+Plus two recommended **PreToolUse** hooks covered in Section 8d — a mechanical *guard* and
+an *orientation gate*. The receipt above only *asks* Claude to read CHECKPOINT; the gate is
+what makes it stick (the maintainer found that a notice the model can ignore isn't enough).
+
+**Progressive disclosure** — The hierarchy (workspace `CLAUDE.md` → project `CLAUDE.md` →
+project `CHECKPOINT.md` → actual files) exists so Claude only loads what it needs for
+the current task. One giant instruction file fails because it floods context with
+irrelevant details. Pointers ("see CHECKPOINT.md → Open threads") are almost always
+better than quoting content inline.
+
+**Why this works** — The two documented failure modes for long-horizon Claude tasks are:
+(1) running out of context from loading too much, and (2) declaring work "done" when
+it isn't because there's no explicit completeness signal. CHECKPOINT.md's "Next step"
+and "Open threads" sections directly solve problem 2. The file hierarchy directly solves
+problem 1.
+
+---
+
+## Section 2.5 — When the Harness Pays Off (and When It Doesn't)
+
+<!-- NOTE FOR HUMANS:
+  This harness is not a free win on every task. It was tested empirically across
+  154 paired Claude Code trials and the result is conditional: it pays off on
+  some task shapes and adds tax on others. Knowing the regime boundary is the
+  difference between deploying it well and over-applying it.
+-->
+
+**Three regimes, measured (paired Wilcoxon, p < 0.05 unless noted):**
+
+| Task shape | Effect | Why |
+|---|---|---|
+| Trivial or pre-oriented prompt (the prompt names the file/path) | **Harness HURTS** (+56% to +75% turns) | Claude runs the startup ritual, finds no useful state, adds turns. |
+| Structured single-project tasks | Neutral | Orientation cost ≈ orientation benefit. |
+| Exploratory multi-project tasks (Claude must pick which folders matter) | **Harness WINS BIG** (−25% to −45% on read-side metrics) | Per-project CLAUDE.md lets Claude classify folders without reading them. Compounds into less exploratory chatter. |
+
+**Practical rules of thumb that fall out of this:**
+
+1. **Don't make Claude self-judge "am I oriented?" — let read-only work be free and let a
+   gate enforce the rest.** Read-only operations (Read/Grep/Glob, answering a lookup) never
+   need orientation, so a genuinely pre-oriented prompt pays *zero* ritual tax
+   automatically — there's nothing to skip. For state-changing actions, enforce "read
+   CHECKPOINT first" structurally with the PreToolUse orientation gate (Section 8d), not
+   with a prose instruction telling Claude to decide for itself whether it can skip. The
+   maintainer originally shipped a self-judged "skip the ritual if pre-oriented" rule, and
+   a 50-session audit found the model applied it unreliably (it acted before reading
+   CHECKPOINT in roughly 1 of 5 actionable sessions), so the rule was replaced by the gate.
+   The +56%–+75% turn-tax finding is what motivates keeping read-only free; the gate is how
+   you capture that saving without trusting self-classification.
+2. **Hierarchy isn't ceremony.** Per-project CLAUDE.md added another ~8% turn savings and
+   ~22% output savings on top of a top-level-only harness for exploratory tasks. Keep
+   per-project CLAUDE.md files even when they feel small.
+3. **Stale CLAUDE.md is the actual production risk.** The benchmark used a frozen,
+   accurate harness. In real use, the danger is drift — a CLAUDE.md that no longer
+   matches reality. Defend against it with the `Last updated:` line in each per-project
+   CHECKPOINT.md, which doubles as a "verified against reality" stamp: bump it whenever a
+   session reads CHECKPOINT and confirms the claims still hold (see the templates in
+   Section 3).
+4. **Don't pitch this as "always faster."** Wall-clock didn't track tokens — exploratory
+   tasks saved 25–45% on output but cost +14% on duration (Claude reads CLAUDE.md, which
+   adds latency even when it saves downstream work). Tokens cost money; wall-clock costs
+   patience. Two different axes.
+5. **The harness doesn't relieve context-window pressure.** Peak context was unaffected
+   across all 154 trials. The harness compresses *what Claude seeks out*, not *what
+   Claude needs in flight*. If you ever hit compaction, that's a separate problem the
+   harness won't solve.
+
+**The clearest regime where this harness earns its keep:** multi-project personal work
+where the question is "which of these projects does the user mean?" That's exactly the
+shape this layout — projects as siblings under a single ledger — was designed for.
+
+---
+
+## Section 3 — Scaffold: Files Claude Will Create
+
+<!-- NOTE FOR HUMANS:
+  Here's exactly what the harness looks like when built. Every file listed
+  here is created by Claude during setup. You can review, edit, or delete
+  any of them after setup without breaking anything else.
+-->
+
+```
+~/.claude/
+└── settings.json                      ← hooks (USER level — must fire in every folder;
+                                          see Section 4). Core: SessionStart + PreCompact.
+                                          Recommended: PreToolUse guard + orientation
+                                          gate (Section 8d).
+
+~/Claude/                              ← your workspace root (the umbrella)
+├── CLAUDE.md                          ← project ledger + shared rules (≤30 lines)
+├── CHECKPOINT.md                      ← top-level state tracker
+├── harness_me.txt                     ← this file (keep it for reference)
+├── BACKUP_snapshot_YYYY-MM-DD.md      ← created in Section 0 (if you ran it)
+├── HARNESS_files_created.md           ← created at end of setup (delete-list to undo)
+├── _template/                         ← skeletons for bootstrapping new projects
+│   ├── CLAUDE.md.template
+│   └── CHECKPOINT.md.template
+├── .claude/
+│   └── settings.local.json            ← permissions allowlist (starts empty)
+└── (your project folders go here, as direct children — see below)
+```
+
+After setup, each real project goes here as a *direct child of the workspace root*
+(no `Projects/` subfolder):
+
+```
+~/Claude/
+├── CLAUDE.md
+├── CHECKPOINT.md
+├── .claude/...
+├── my-first-project/
+│   ├── CLAUDE.md      ← project-specific facts (15–30 lines)
+│   ├── CHECKPOINT.md  ← mutable session state for this project
+│   └── archive/       ← appears later: evicted changelog entries + retired specs
+│       └── harness_changelog.md
+└── another-project/
+    ├── CLAUDE.md
+    └── CHECKPOINT.md
+```
+
+The `archive/` folder isn't created at setup — it appears the first time a project's
+CHECKPOINT overflows its caps. It doubles as the project's attic: retired specs and
+files you're keeping wholesale but no longer using go there too.
+
+If you also use Cowork, give it a sibling folder (`Cowork/`) with its own scope —
+see Section 8b.
+
+**Claude instructions:** Use the templates below as starting points. Fill in
+`[BRACKETED]` fields based on what the user tells you about themselves and their work.
+Also save unfilled copies of the two per-project templates into `_template/`
+(as `CLAUDE.md.template` and `CHECKPOINT.md.template`) so future projects bootstrap
+by copying instead of reinventing.
+
+### Template: Workspace CLAUDE.md (the project ledger)
+
+```markdown
+# [USER'S NAME]'s Workspace
+<!-- v1 — [DATE UTC] -->
+
+This workspace holds [USER'S NAME]'s personal projects. Each immediate subfolder is a
+project with its own `CLAUDE.md` (stable facts) and `CHECKPOINT.md` (mutable state).
+This file is the project ledger and the shared rulebook all projects inherit.
+
+## Startup sequence
+
+0. **Orientation is enforced by the gate, not your own judgment.** Read-only work
+   (Read/Grep/Glob, answering a lookup like "what does function Y do in Z.py") never trips
+   the orientation gate, so a genuinely pre-oriented prompt pays zero ritual tax
+   automatically — just answer it. But the first time you go to *change* a file, run a
+   shell command, or hit the web, the PreToolUse orientation gate (Section 8d) blocks once
+   unless this session has already read CHECKPOINT.md — so do steps 1-3 first. If you have
+   honestly judged this a pre-oriented one-shot that doesn't depend on project state ("fix
+   this typo in X.md"), just re-issue the blocked call to proceed; the gate fires only once
+   per session. (Why a gate instead of a self-judged "skip the ritual" rule: pre-oriented
+   prompts cost +56% to +75% turn tax, so skipping when truly oriented matters — but a
+   50-session audit found the model classifies "am I oriented?" unreliably and errs toward
+   just acting. The gate makes read-only free and the action boundary mechanical.)
+1. The SessionStart hook prints a CHECKPOINT *receipt* (file present + byte/line count),
+   not the contents. Read CHECKPOINT.md to EOF before acting. If the Read shows a
+   truncation or partial-view notice, re-Read until complete.
+2. Confirm the "Next step" matches what the user is asking for.
+3. If `Last updated:` is older than 30 days, verify or update CHECKPOINT before acting on
+   what it claims (that line doubles as the "verified against reality" stamp).
+4. Then act.
+
+## Rules
+
+- CLAUDE.md = stable facts only (≤30 lines, hard cap). Version stamp on line 2.
+  If it grows past 30, move surplus to `<project>/INVENTORY.md` and reference it.
+- CHECKPOINT.md = mutable state (≤120 lines, ~30KB). Overwrite in place, never append.
+  On overflow: archive oldest changelog entries to `archive/harness_changelog.md` first.
+- Update CHECKPOINT.md at end of any logically complete task, and before /compact.
+- Any hook/Read result showing "Output too large" or a partial-view notice is
+  incomplete — Read the persisted file or re-Read the source to EOF before acting.
+- No bare future-session promises. Before saying "I'll do X later/next session": either
+  do it now, or write it into CHECKPOINT Open threads in the SAME turn and point at the
+  thread. Litmus: "will the next session find this in a file it reads?"
+- One open thread at a time. Finish or hit a real blocker before starting another.
+- Don't re-read files already summarized in CHECKPOINT.md.
+- New project or new milestone: first turn produces a `## Research` block in
+  CHECKPOINT.md (prior art, constraints, open questions, sources) before any
+  implementation. Prune it into Key decisions once the milestone ships.
+- Move files with `mv`/`Move-Item`, then Edit in place — never Write-to-new-path +
+  delete-old (orphan risk, history loss, double permission prompts).
+- Destructive ops (rm and friends) only on literal paths the user named in this
+  conversation — never on paths derived from globs, find output, or variables.
+- Just act — if a tool in this session can do the thing, DO it and report the outcome;
+  don't end a turn *offering* to do work you could have just done. An offer is only worth
+  it when the next step is genuinely expensive, irreversible, or a real fork the user must
+  pick.
+- Diagnose a surprising or wrong result to root cause with real artifacts (logs, the live
+  API, the actual code path) before reporting a cause. The first plausible story ("benign
+  backlog", "coincidence") is not a diagnosis. Litmus: have I shown the mechanism with a
+  source, or am I narrating a guess?
+- These folders aren't git repos by default, so nothing is committed or pushed unprompted.
+  If you later put a project under a PRIVATE repo as its backup, treat that backup as
+  incomplete until you PUSH it — a commit left local isn't a backup.
+
+## Projects
+
+| Folder | Purpose |
+|--------|---------|
+| (add rows as you create projects) | |
+```
+
+### Template: Workspace CHECKPOINT.md (initial state)
+
+```markdown
+# Workspace Checkpoint
+Last updated: [DATE]
+
+## Status
+Harness installed. No projects yet.
+
+## Open threads
+- Create first project folder when user identifies one.
+
+## Next step
+Ask user: "What's the first project you'd like to track here?"
+```
+
+### Template: Per-project CLAUDE.md
+
+```markdown
+# [Project Name]
+<!-- v1 — [DATE UTC] -->
+
+## Purpose
+[One sentence: what this project is.]
+
+## Key files
+- `CHECKPOINT.md` — current status and open threads
+
+## How to work on this project
+[Any special steps, tools, or constraints. Delete this section if none.]
+
+## Gotchas
+[Known traps or non-obvious constraints. Delete if none.]
+```
+
+### Template: Per-project CHECKPOINT.md
+
+```markdown
+# [Project Name] Checkpoint
+Last updated: [DATE UTC]   <!-- TIMESTAMP ONLY, and the "verified against reality" stamp:
+                                bump it whenever a session re-reads project state. NOT a
+                                change summary — that history lives in the changelog. -->
+
+## Status
+[One line: the PRESENT state only — where things stand right now. No past ("just shipped
+X" → changelog), no future ("X pending / next" → Next step or Open threads). For
+live-data projects, point at the live source instead of quoting numbers that go stale.]
+
+## Goal
+[1–3 lines: what this project is trying to accomplish.]
+
+## Key decisions
+[LIVE, still-contestable choices a future session would otherwise re-litigate. NOT a
+rulebook and NOT an archive: a decision that hardened into a standing rule moves to
+CLAUDE.md; a closed/done decision's durable record is its changelog entry — prune it,
+don't keep a "Closed this session" graveyard. Litmus: still contestable AND recorded
+only here?]
+- (bullets)
+- **Failed approaches:**
+  - (what was tried and why it didn't work — the highest-value content a future
+    session cannot reconstruct from files; success leaves code, failure leaves nothing)
+
+## Open threads
+- (bullets — the source of truth for incomplete work; reads like a to-do list, never a
+  graveyard of done items)
+
+## Files that matter
+- `[path]` — [one-line role]
+
+## Next step
+[One explicit, actionable sentence. This section, not Status, owns "what's next."]
+```
+
+*The `Last updated:` line is your defense against stale-harness drift — it doubles as the
+"verified against reality" stamp. Bump it any time a session reads CHECKPOINT and confirms
+the claims still match the project's actual state. If a session opens and finds it >30 days
+old, the first action is to verify before acting on what CHECKPOINT says. (Earlier versions
+of this guide used a separate `Verified-against-reality:` line; folding it into the single
+timestamp is simpler and removes a field people forget to bump.)*
+
+*Optional but recommended once a project accumulates history: a `## Harness changelog`
+section tracking changes to that project's CLAUDE.md. Use **date-led** entry headers —
+`### YYYY-MM-DD -- <summary> (vN)` — newest at top. The ISO date is the sort key, not
+the version number: if two sessions in the same folder both bump "vN" without seeing
+each other, the version numbers collide but the dates stay honest. Existing changelog
+entries are **immutable history** — never summarize, shorten, or retype them (the model
+"tidies" history when it regenerates a whole file; that's the bug). Carry them
+byte-identical on every rewrite; the only sanctioned operation is the verbatim archive
+move. When the changelog pushes CHECKPOINT past its caps, move the oldest entries verbatim
+to
+`archive/harness_changelog.md` and leave a one-line pointer
+(`Older entries: see archive/harness_changelog.md.`). The archive header is fixed
+boilerplate ("read-only archaeology, newest at top, see ../CHECKPOINT.md for current") —
+resist the urge to maintain a running batch-log there; that accretion is its own bloat.*
+
+**Claude instructions:** When all files have been created, write a file called
+`HARNESS_files_created.md` in the workspace root. At the top, include this note:
+
+> To undo the harness, delete the files listed below. Nothing else was modified.
+
+Then list every file created during this session with its full path and a one-line
+description of its role. This gives the user a precise, unambiguous delete-list if
+they ever want to revert.
+
+---
+
+## Section 4 — Hook Templates
+
+<!-- NOTE FOR HUMANS:
+  Hooks are shell commands that Claude Code runs automatically on certain events.
+  You don't need to understand the shell syntax — Claude writes this file for you.
+
+  Two hooks are installed by this section (the always-on core); two more optional
+  PreToolUse hooks — a mechanical guard and an orientation gate — come in Section 8d:
+
+  1. SessionStart: When you open a Claude session inside a project folder, it
+     prints a small RECEIPT — "CHECKPOINT.md present: N bytes / N lines, read it" —
+     which prompts Claude to read the file itself before acting.
+
+  2. PreCompact: When you run /compact (or auto-compact fires), it reminds Claude
+     to update CHECKPOINT.md first. This prevents the compressed session from
+     starting with stale state.
+
+  WHY A RECEIPT, AND WHY USER-LEVEL? Earlier versions of this guide put the hooks
+  in the workspace root's .claude/settings.json and had SessionStart print the
+  whole CHECKPOINT into context. Both halves of that design fail silently:
+
+  1. Claude Code treats each subfolder you open a session in as its own project
+     (scoped by working directory). It inherits a parent folder's CLAUDE.md, but
+     NOT a parent's .claude/settings.json. So hooks installed at the workspace
+     root never fire for sessions opened inside project folders — which is nearly
+     every session. The maintainer ran months of sessions where the "automatic"
+     checkpoint surfacing simply never happened, and nothing said so.
+
+  2. Even when the hook does fire, Claude Code caps hook output: anything large
+     gets saved to a file and only a ~2KB preview is injected into context — and
+     the preview is indistinguishable from a complete result, so Claude proceeds
+     on partial state with no warning.
+
+  The fix for both: hooks live in your USER-level settings file (~/.claude/
+  settings.json) so they fire in every folder, guarded by a file-exists check so
+  they're silent no-ops in folders without a CHECKPOINT. And SessionStart emits a
+  tiny receipt instead of the file contents — the actual content then loads
+  through Claude's Read tool, which tolerates ~50KB and FLAGS partial reads
+  instead of hiding them.
+
+  Pick the version for your OS (Windows = PowerShell, Mac/Linux = bash).
+-->
+
+**Claude instructions:** Add the hooks below to the **user-level** `~/.claude/settings.json`
+(NOT the workspace `.claude/settings.json` — workspace settings don't reach sessions
+opened in project subfolders). If that file already exists, MERGE the `hooks` block into
+it — do not overwrite the user's existing settings. Ask which OS if you don't know.
+
+Three implementation gotchas, learned the hard way:
+
+- **No `$`-variables inside PowerShell hook command strings.** Claude Code runs hook
+  commands through a `$`-interpolating layer that strips undefined `$`-vars *before*
+  PowerShell ever parses them — the hook then fails silently and emits nothing. Inline
+  every expression instead (as the templates below do). And don't test hook strings via
+  `cmd.exe` — it doesn't interpolate `$`, so it gives a false pass. Test through a
+  `$`-interpolating parent (PowerShell `Invoke-Expression`, or bash).
+- **The same wrapper also chokes on `<`, `>`, and non-ASCII — it's not just `$`.** Redirect
+  characters (`<`/`>`) get mangled, so write `(UUID)` not `<UUID>` in a hook message; and
+  em-dashes / curly quotes inside the command string break PowerShell's parse. Keep hook
+  command strings ASCII and free of redirect characters.
+- **Hooks load at session start.** After editing settings.json, the change takes effect
+  in the *next* session, not the current one.
+
+### Windows (PowerShell)
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -Command \"try { if (Test-Path CHECKPOINT.md) { Write-Output '=== CHECKPOINT RECEIPT (resume context for this project) ==='; Write-Output ('CHECKPOINT.md present: ' + (Get-Item CHECKPOINT.md).Length + ' bytes / ' + @(Get-Content CHECKPOINT.md).Count + ' lines. NOT inlined here.'); Write-Output 'ACTION: Read CHECKPOINT.md to EOF before any non-pre-oriented action. If the Read shows a truncation / partial-view notice, re-Read with offset+limit until complete.'; Write-Output '=== end RECEIPT ===' } } catch { Write-Output '=== CHECKPOINT RECEIPT ERROR -- manually Read CHECKPOINT.md before acting ===' }\""
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -Command \"if (Test-Path CHECKPOINT.md) { Write-Output 'REMINDER: Context is about to be compacted. If CHECKPOINT.md in the current project has not been updated this session, rewrite it now with compressed state before proceeding.' }\""
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Mac / Linux (bash)
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if [ -f CHECKPOINT.md ]; then echo \"=== CHECKPOINT RECEIPT (resume context for this project) ===\"; echo \"CHECKPOINT.md present (lines bytes filename):\"; wc -l -c CHECKPOINT.md; echo \"NOT inlined here. ACTION: Read CHECKPOINT.md to EOF before any non-pre-oriented action. If the Read shows a truncation / partial-view notice, re-Read until complete.\"; echo \"=== end RECEIPT ===\"; fi'"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if [ -f CHECKPOINT.md ]; then echo \"REMINDER: Context is about to be compacted. If CHECKPOINT.md in the current project has not been updated this session, rewrite it now with compressed state before proceeding.\"; fi'"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+(Note the bash receipt deliberately avoids `$` too — the same interpolating layer that
+eats PowerShell `$`-vars applies to the whole command string. `wc -l -c` gets the
+numbers without any shell variables.)
+
+### Two more PreToolUse hooks (recommended)
+
+The receipt above only *asks* Claude to read CHECKPOINT; nothing makes it. The maintainer
+ran months of sessions where Claude acted before reading CHECKPOINT anyway, and a
+50-session audit put a number on it (~1 in 5 actionable sessions). Prose the model can
+ignore isn't enough, so two PreToolUse hooks back it up — both covered in full in
+Section 8d:
+
+- A **mechanical guard** that blocks tool input which would *break parsing* (the
+  maintainer's blocks Windows-specific breakages; yours may differ).
+- An **orientation gate** that blocks the *first* state-changing tool call of a session
+  until CHECKPOINT has been read, then gets out of the way (block-once, fail-open;
+  read-only tools are never gated). This is what makes startup step 0 structural rather
+  than advisory.
+
+Both live as separate matcher-objects inside the same `PreToolUse` array — see Section 8d
+for the scripts and the exact settings.json shape. They're "recommended" rather than
+"core" only because they're a bit more involved than the two inline hooks above;
+functionally the orientation gate is the load-bearing one.
+
+### A standing rule that pairs with the receipt
+
+Add this to your workspace CLAUDE.md rules (the template in Section 3 already includes
+it): **whenever any hook result, Read, or tool output shows an "Output too large ...
+Full output saved to <path>" marker or a partial-view notice, treat it as incomplete —
+Read the persisted file or re-Read the source to EOF before acting.** The preview looks
+complete; that's exactly what makes it dangerous.
+
+### settings.local.json (workspace root, start empty)
+
+```json
+{
+  "permissions": {
+    "allow": [],
+    "deny": []
+  }
+}
+```
+
+<!-- NOTE FOR HUMANS:
+  settings.local.json is where you'll add pre-approved commands over time.
+  If Claude keeps asking permission to read a certain folder or run a certain
+  command, you can add it here and it won't ask again. Claude can help you
+  write the entries as you discover what you need.
+-->
+
+---
+
+## Section 5 — Token Efficiency
+
+<!-- NOTE FOR HUMANS:
+  Every word Claude reads costs tokens. Tokens = time + money (or rate-limit
+  headroom). These habits keep sessions fast and cheap without sacrificing quality.
+
+  The model-switching tip is the biggest practical win: many tasks don't need
+  Sonnet or Opus. If Claude is just summarizing a file or filling in a template,
+  Haiku is fast, cheap, and more than capable. You can switch models mid-session
+  using the model selector in Claude Code.
+-->
+
+**Model selection by task type:**
+
+| Task | Recommended model |
+|------|------------------|
+| Reading CHECKPOINT.md and stating the next step | Haiku |
+| Writing or updating CHECKPOINT.md | Haiku |
+| Creating boilerplate CLAUDE.md stubs | Haiku |
+| Summarizing a file tree or folder listing | Haiku |
+| Planning an approach, weighing tradeoffs | Sonnet |
+| Reasoning about a complex problem | Sonnet |
+| Multi-step tasks with judgment calls | Sonnet |
+| Long-horizon autonomous work, architectural decisions | Opus |
+
+**Sub-agent & model routing (when the session spawns sub-agents):**
+
+- **Cost gate first — the task NOUN is not the trigger, the TOKEN WEIGHT is.** A sub-agent
+  pays a fixed context-rebuild overhead (tens of thousands of tokens: it starts cold,
+  re-explores, over-verifies), so routing only pays when the inline cost would exceed
+  that. A handful of commands — a restart, one status check, a single config flip —
+  runs INLINE even if the task category ("run tests", "restart the server") sounds
+  routable. Litmus: "would inline cost more than ~30–40k tokens?" No → inline. This
+  gate outranks every model-choice rule below. (Real incident: a ~4-command process
+  restart routed to a sub-agent burned 67k tokens / 26 tool calls to fire stop+start.)
+- **Once a sub-agent is warranted, pick the model by three ranked dimensions:
+  intelligence > taste > cost, with cost as tie-breaker ONLY.** Mechanical/bulk
+  execution (builds, test runs, form-filling, bulk edits) → the mid-tier model.
+  Anything user-facing or that ships — prose someone reads, code that lands, a
+  published artifact — gets a taste-tier model (usually: stays inline on the big
+  model). Under subscription billing "cost" means usage-pool depletion, not $/token,
+  so per-token price tables mislead more than they help.
+- **Never the smallest tier for real work.** Small models are for genuinely mechanical
+  transforms (the Haiku rows in the table above), not anything requiring judgment.
+- **Don't hardcode a task→model grid.** Model ratings go stale with every release and
+  a rigid per-task matrix amplifies over-routing (the cost-gate failure above). Keep
+  the principles; re-derive the assignments as models change.
+- **Optional second-provider rung:** a separate CLI coding agent (e.g. Codex) can take
+  spec-frozen, repo-local, pure-code work — implementation from a frozen spec, bug
+  fixes with a known repro, test writing. It gets ZERO session context and none of
+  your MCP tools, so anything context- or tool-dependent stays home, and the primary
+  agent reviews all its output. Value = a second usage-limit pool + strong execution
+  on well-specced work. Gate it on the CLI actually being installed (probe the PATH),
+  not on intent.
+
+**File hygiene habits:**
+
+- Keep CLAUDE.md ≤ 30 lines (hard cap). Anything longer probably has mutable state that
+  belongs in CHECKPOINT.md, or stable detail that belongs in a sibling file like
+  `INVENTORY.md`. Bench-validated: bloated CLAUDE.md re-introduces an output-token tax
+  that small ones don't pay.
+- Keep CHECKPOINT.md under 120 lines AND ~30KB. If it keeps growing, you're appending
+  instead of rewriting — archive the oldest changelog entries to
+  `archive/harness_changelog.md` and rewrite the rest as compressed state. The byte
+  budget matters separately from the line cap: dense multi-line changelog paragraphs
+  can blow past transport limits while staying under the line count.
+- Front-load resume-critical sections. Order CHECKPOINT so Status / Open threads /
+  Next step come first and the changelog goes last — if anything ever truncates,
+  the load-bearing part survives.
+- Bump `Last updated:` whenever a session reads CHECKPOINT and confirms it still matches
+  reality — that line doubles as the "verified against reality" stamp. Stale-harness drift
+  is the actual production risk; the bench couldn't test it because H1 was frozen, so this
+  rule is the live defense.
+- Use pointers, not quotes. "See CHECKPOINT.md → Open threads" is better than
+  pasting the content inline.
+- Don't re-read files already summarized in CHECKPOINT.md. If it's in the checkpoint,
+  trust it.
+- One open thread at a time. Splitting attention across multiple tasks floods context
+  and reduces quality on both.
+
+**A note on speed claims:** The harness saves tokens on exploratory work. It does NOT
+necessarily save wall-clock time — reading CLAUDE.md takes seconds even when it saves
+downstream work. Tokens cost money; wall-clock costs patience. Don't conflate them when
+pitching this pattern to others.
+
+**Context compaction (/compact):**
+- Always update CHECKPOINT.md *before* running /compact. The PreCompact hook
+  reminds you.
+- After compacting, the first thing Claude should do is re-read CHECKPOINT.md to
+  restore state.
+- If auto-compact fires unexpectedly, the hook fires too — same protocol.
+
+---
+
+## Section 6 — First-Session Checklist
+
+<!-- NOTE FOR HUMANS:
+  Run through this after setup to confirm everything is wired correctly.
+  If a hook doesn't fire, see the troubleshooting notes below each item.
+-->
+
+**Claude instructions:** After building the harness, verify these
+with the user:
+
+1. **SessionStart receipt fires:** Open a NEW session (hooks load at session start)
+   with the working directory set to any project folder under the workspace. A
+   "CHECKPOINT RECEIPT" block with the file's byte/line count should appear in the
+   first system message — and Claude should then Read CHECKPOINT.md before acting.
+   If no receipt appears, check that the hooks are in the **user-level**
+   `~/.claude/settings.json` (not the workspace one) and that the file is valid JSON.
+
+2. **The byte/line count is live:** The numbers in the receipt should match the actual
+   file (`wc -l -c CHECKPOINT.md` or `(Get-Item CHECKPOINT.md).Length`). If the receipt
+   appears but with an error line or missing numbers, the likely culprit is a `$`-variable
+   in the hook command string — see the gotcha in Section 4.
+
+3. **PreCompact hook fires:** Run `/compact` in a test session. A reminder message
+   about updating CHECKPOINT.md should appear before compaction. If it doesn't,
+   the event name may vary by Claude Code version — check release notes or try
+   `PreCompact` vs `pre_compact` as the hook key.
+
+4. **CLAUDE.md loads without error:** Open any project folder and ask Claude:
+   "What does your CLAUDE.md say?" It should describe the project accurately
+   without needing to re-read from disk.
+
+5. **The orientation gate fires once (if you installed it — Section 8d):** Open a NEW
+   session in a project folder that has a CHECKPOINT.md, and give an action-first prompt
+   ("edit line 1 of notes.txt") *without* reading CHECKPOINT first. The first
+   state-changing call should be blocked once with an "ORIENTATION GATE" message; reading
+   CHECKPOINT — or simply re-issuing the same call — should then let it through. Read-only
+   prompts should never be blocked. If it blocks every time or never releases, check the
+   block-once sentinel and the fail-open `catch` in the script.
+
+**Troubleshooting:**
+- Receipt not appearing → Verify `~/.claude/settings.json` is valid JSON (no trailing
+  commas). Verify the hooks are at USER level — workspace-level hooks don't fire for
+  sessions opened inside project subfolders.
+- Receipt appears but garbled/empty → `$`-variables in the command string get stripped
+  by Claude Code's interpolating layer before the shell parses them. Inline every
+  expression. Don't trust a `cmd.exe` test — it doesn't interpolate `$` and gives a
+  false pass; test via PowerShell `Invoke-Expression` or bash.
+- Receipt fires but Claude doesn't read the file → make sure the workspace CLAUDE.md
+  startup sequence says to Read CHECKPOINT.md to EOF (Section 3 template, step 1).
+- Receipt absent in a folder → CHECKPOINT.md doesn't exist there yet; the `Test-Path` /
+  `[ -f ]` guard makes the hook a silent no-op by design.
+
+---
+
+## Section 7 — Claude Code Config Walkthrough
+
+<!-- NOTE FOR HUMANS:
+  This section is a tour of Claude Code settings worth knowing about.
+  You don't need to change anything right now — think of it as a map
+  of knobs you can adjust later. Ask Claude to walk you through any item
+  in detail; don't feel obligated to configure everything at once.
+-->
+
+**Claude instructions:** Offer to walk the user through any of the following.
+Read each item aloud only if the user asks; don't dump the whole list unprompted.
+
+---
+
+### Model Selection
+
+Claude Code lets you pick which model handles your session via the model selector
+in the conversation header.
+
+- **Haiku** — Fastest and cheapest. Great for routine tasks: file reads, boilerplate
+  generation, summarization, checkpoint updates. Use it by default for mechanical work.
+- **Sonnet** — The balanced default. Good for planning, reasoning, code, and anything
+  requiring judgment. Most sessions should run on Sonnet.
+- **Opus** — Most capable. Use for complex long-horizon tasks, deep reasoning, or
+  anywhere quality clearly matters more than speed. Use intentionally.
+
+*Tip: You can switch models mid-session without losing context. Start complex tasks
+on Sonnet, drop to Haiku for mechanical sub-tasks, and come back.*
+
+---
+
+### Theme (Appearance)
+
+Settings → Appearance → Theme. Choose Light, Dark, or System (follows your OS).
+No functional effect — purely personal preference.
+
+---
+
+### Verbose Mode
+
+Settings → Developer → Verbose. When enabled, Claude Code prints every tool call
+and its result in the conversation, including hook output. Useful for debugging hooks
+or understanding what Claude is doing under the hood. Turn it off in normal use — the
+extra output floods context.
+
+---
+
+### Permission Modes
+
+Claude Code asks for approval before running certain tools (file writes, shell commands,
+etc.). Three modes:
+
+- **Default (prompt each time):** Claude asks before any potentially impactful action.
+  Safest. Recommended until you know which actions you regularly approve.
+- **Auto-approve (allowlist):** Add specific commands or tool patterns to
+  `settings.local.json` → `permissions.allow`. Claude runs those without prompting;
+  everything else still asks.
+- **Bypass all prompts:** Available via `--dangerously-skip-permissions` flag.
+  Not recommended for daily use — it removes all guardrails.
+
+*Tip: Start with default mode. As you notice Claude asking for the same permission
+repeatedly, add it to settings.local.json. Claude can write the entry for you.*
+
+---
+
+### MCP Servers
+
+MCP (Model Context Protocol) servers give Claude access to external tools — Gmail,
+Google Calendar, Notion, GitHub, databases, and more. They appear as additional tool
+categories in the session.
+
+- To add an MCP server: Settings → MCP Servers → Add. You'll need the server's
+  connection URL or local command.
+- Each MCP server loads its tool list into context on every session — be selective.
+  Adding many servers when you only use a few wastes tokens every turn.
+
+*Tip: Only connect MCP servers for tools you use in Claude at least weekly.
+Unused MCP servers are pure token overhead.*
+
+---
+
+### Custom Slash Commands and Skills
+
+Two related mechanisms, and it's worth knowing which is which:
+
+- **Project commands** live in a repo's `.claude/commands/` as `.md` files and are scoped
+  to that one project.
+- **User-level skills** live in `~/.claude/skills/<name>/SKILL.md` and fire across *all*
+  your projects. The harness suite in Section 8c (`/checkpoint`, `/breakdown`, etc.) is
+  built this way, because those conventions should apply everywhere, not per-repo.
+
+Example: a `/checkpoint` skill that always rewrites CHECKPOINT.md in the correct format.
+Claude can write either kind for you — just describe the behavior you want, and say whether
+it should be project-local or global.
+
+*Tip: Skills are a great way to encode harness conventions so you don't have to re-explain
+them every session. See Section 8c for the suite the maintainer actually built.*
+
+---
+
+### Memory Files (`~/.claude/`) — this harness deliberately doesn't use them
+
+Claude Code offers a persistent auto-memory directory at `~/.claude/` (outside your
+workspace) whose files load across all sessions and projects. **This harness deliberately
+does NOT use it.** `CLAUDE.md` + `CHECKPOINT.md` are the single source of truth:
+
+- **CLAUDE.md** — stable facts, workspace- or project-scoped.
+- **CHECKPOINT.md** — mutable session state within a project, surfaced by the hook.
+
+Why skip auto-memory: when you keep two durable stores, they drift, and stale memory can
+silently override the files you actively maintain — and you can't tell which one won. With
+one source of truth, "the files are wrong" is a problem you can see and fix. Stale memory
+fading is a *feature* here, not a bug. If a skill ever offers to write a fix into
+auto-memory, put it in the harness files instead. (If you personally prefer auto-memory,
+that's a legitimate alternative — but then pick *one* durable store and commit to it;
+running both is the trap this rule avoids.)
+
+---
+
+### Auto-Compact
+
+When your conversation grows long enough to approach Claude's context limit, auto-compact
+fires automatically and compresses the conversation history. The PreCompact hook
+(installed in Section 4) fires just before this happens, reminding Claude to update
+CHECKPOINT.md first.
+
+- You can also trigger compaction manually with `/compact`.
+- After compaction, the conversation history is summarized; individual messages are no
+  longer accessible. This is why CHECKPOINT.md matters — it's the handoff document that
+  carries state across the compaction boundary.
+- If Claude loses track of something after a compaction, the fix is almost always:
+  "that should have been in CHECKPOINT.md."
+
+---
+
+## Section 8 — Optional Add-Ons (Concepts to Build Out)
+
+<!-- NOTE FOR HUMANS:
+  These are optional patterns to layer on top of the base harness. They are
+  not part of the default install — only build them out if the user asks for
+  them, or if they describe a need that one of these patterns would solve.
+  This section is concept-only: shape, not implementation. Treat each item
+  as a sketch the user can ask Claude to flesh out for their own machine.
+-->
+
+**Claude instructions:** Mention these only if the user asks "what else can I do
+with this harness?" or describes a workflow that one of these add-ons fits. Don't
+build any of them unprompted.
+
+---
+
+### 8a — A "Rants" / Musings Folder
+
+A capture-first space for unstructured thinking that doesn't belong in any project's
+CHECKPOINT.md. Useful when the user wants to dictate or dump half-formed thoughts
+without committing them to a project's actionable scope.
+
+**Shape of the pattern:**
+
+- A dedicated `rants/` (or similarly-named) folder as a sibling of your other project
+  folders, with its own CLAUDE.md that explicitly sets a different working mode from
+  project folders.
+- **Two paired files per topic:** a verbatim file (the user's words, untouched —
+  no cleanup, no reordering) and a summary file (cleaned and lightly structured).
+  The verbatim file is the source of truth; if the two disagree, verbatim wins.
+- **Filenames are short slugs** (loosely human-readable, ~15–25 characters), no date
+  prefix. Dates live inside the files. This keeps the folder scannable at a glance.
+- **Similar topics merge, new topics spawn pairs.** When a fresh musing sounds like
+  an existing one, Claude confirms with the user, then appends to the existing
+  verbatim file with a dated divider and refreshes the summary. Genuinely new
+  topics get a new pair.
+- **Optional hybrid files** synthesize across two or more rants. They must reference
+  the source rants by filename so the lineage stays intact.
+- **Default assistant behavior in this folder is capture, not critique.** Transcribe
+  and lightly clean. Don't argue with the take, "balance" it, or summarize it back
+  at the user — they can read. Sparring/critique is a separate mode the user
+  triggers explicitly ("push back on this one").
+
+**Why it's worth having:** keeps unstructured thinking out of project CHECKPOINTs
+(which should stay tight), and keeps Claude from reflexively turning every musing
+into an action item. Some thoughts are just thoughts.
+
+---
+
+### 8b — Cowork Sibling (for users who use Anthropic's Cowork app)
+
+If you also use Cowork (Anthropic's scheduled-task / async workspace app), give it
+its own `Cowork/` folder as a sibling of your project folders. Don't try to overlay
+it on the same workspace where Claude Code projects live — the two have different
+ideas about what `.claude/` and the workspace root mean, and you'll get conflicts.
+
+**Shape of the pattern:**
+
+- `~/Claude/Cowork/` is the Cowork workspace root. Open Cowork by selecting that
+  folder in the Cowork folder picker.
+- `Cowork/CLAUDE.md` is Cowork-scoped: it describes the Cowork workspace, where
+  scheduled tasks live, and any Cowork-specific rules. Keep it short like any other
+  CLAUDE.md.
+- `Cowork/Scheduled/` holds per-task subfolders (one per scheduled task), each with
+  a `SKILL.md` that's the prompt Cowork runs.
+- `Cowork/.claude/settings.local.json` holds Cowork session permissions, separate
+  from the project-level settings at the workspace root.
+- `*.skill` files (Cowork plugin archives like `social-crm.skill`) live in `Cowork/`,
+  not in any project folder.
+
+**Why a sibling, not a subfolder of any project:** Cowork sessions and Claude Code
+project sessions both look for a `CLAUDE.md` at their working directory. If Cowork
+lives inside a project, both apps fight over the same file. Keeping Cowork as a
+sibling lets each app see its own CLAUDE.md without ambiguity.
+
+**Why not the workspace root itself:** if Cowork is installed at the umbrella
+workspace root (i.e., directly at `~/Claude/`), opening a CC project session in any
+sibling folder will inherit Cowork-scoped settings and vice versa. The sibling
+arrangement keeps each tool's home cleanly bounded.
+
+**A drift to watch for:** cloud-sync clients (Google Drive, OneDrive, etc.) sometimes
+resurrect old folder skeletons from their cloud snapshots when you reconfigure their
+sync targets. After moving Cowork stuff into `Cowork/`, watch for empty `Scheduled/`
+or `.claude/` folders reappearing at the workspace root — those are sync ghosts, safe
+to delete.
+
+---
+
+### 8c — A Custom Skill Suite: Promote Failing Rules into Tools
+
+Once the base harness is running, the next layer is custom slash commands (Claude Code
+"skills" — a `SKILL.md` per command under `~/.claude/skills/<name>/`). The maintainer
+built a suite of these in mid-2026; the individual tools matter less than the two
+meta-lessons behind them.
+
+**Meta-lesson 1: a rule that keeps failing is the textbook case for promoting to a
+tool.** If you've written the same correction into CLAUDE.md or memory three times and
+Claude still violates it, stop re-wording the rule — turn it into a skill you can fire
+(or a hook that fires itself). Each tool below started life as a written rule that
+kept getting broken.
+
+**Meta-lesson 2: ground the tool list in your own transcripts, not your imagination.**
+Claude Code keeps full session transcripts under `~/.claude/projects/`. Before building
+anything, the maintainer had Claude crawl 631 real sessions for friction phrases and
+bucket them by candidate tool. The result reordered the priorities: the loudest,
+most-repeated friction was *not* the expected one ("I'm overwhelmed, simplify") — that
+scan came back almost empty. The dominant friction was **laziness/punting**: Claude
+stopping at "can't determine" when the data to determine it was already in reach, or
+narrating what it *could* do instead of doing it. One candidate tool survived only as
+a reframed, terser version of itself; another was demoted. Build for the friction you
+can prove.
+
+**The suite (adapt names and details to your own friction):**
+
+- **/checkpoint** — formalizes the CHECKPOINT rewrite: enforces the section schema,
+  the line/byte caps, and the archive-on-overflow move, so manual "update the
+  checkpoint" requests stop producing schema drift. Deliberately *inverts* the popular
+  community `/handoff` command, which writes a NEW timestamped handoff file every time —
+  that pattern appends a growing log, proliferates status files, and duplicates the
+  CHECKPOINT you already keep. Overwrite-in-place, keep the good parts (specific paths,
+  actionable next step, present-tense state).
+- **/breakdown** — convergent, action-first decomposition of one tangled problem:
+  the real goal in one sentence, the smallest next action, the one blocking decision,
+  the full plan collapsed and explicitly de-emphasized, and the single most likely
+  trap. Terse by design.
+- **/redteam** — one adversarial pass that *assumes the answer is wrong* and hunts the
+  fatal flaw: strongest case it's wrong, the load-bearing silent assumption, verdict.
+  Exists as the cheap middle gear in an escalating ladder: single-shot answer →
+  /redteam (one adversarial frame) → full multi-frame ideation fanout (~7x tokens).
+  Expensive gears are explicit-invoke only, never automatic.
+- **/plain** — re-explains the previous dense, jargon-loaded response in plain
+  generous English. Resolves any invented codes/acronyms by *looking them up* in
+  project files (never guessing), keeps ALL the substance — trimming detail to get
+  shorter is the failure mode, not the goal.
+- **/dumb** — the panic button for "your last response was wrong/lazy." The premise
+  is fixed (it WAS wrong), so the skill forbids defending or rationalizing and forces
+  a one-line honest diagnosis plus an actual fix — do the work, not explain why it
+  was fine.
+- **/spec** — writes lean specs AND forces the closeout step. The pain it solves:
+  spec production is easy, but archiving/promoting the executed spec afterward never
+  happens, so dead specs pile up looking live. Every spec it writes carries a
+  mandatory `## Closeout` section, and reporting a spec's work done fires the
+  closeout (move to `decisions/`, flip a `Status:` line, clear the CHECKPOINT thread)
+  even unprompted.
+- **/prevent** — the operational form of meta-lesson 1. When a documented rule got
+  violated because it wasn't in Claude's read path, this fixes the immediate slip AND
+  moves the knowledge to where the failing workflow will actually read it next time (a
+  colocated CLAUDE.md, a hook, a deny rule). The harness change is the deliverable, not the
+  apology. If you build only one skill from this list, this is the one that embodies the
+  whole "promote failing rules into tools" idea.
+- **/prove** — the verification member of the correction family. When a claim in the last
+  response might be made up or memory-sourced, it extracts each factual claim and checks it
+  against files first (then the web), reporting per-claim Confirmed / Wrong / Unverifiable
+  with citations. Never re-asserts from memory.
+- **/fanout** — the top gear of the escalation ladder above (single-shot → /redteam →
+  /fanout): divergent 5-frame ideation plus a critic pass, for open-ended problems with
+  many valid answers. ~7x the tokens of a single answer, so it's explicit-invoke only.
+  /breakdown is its convergent twin.
+
+*(Project-specific skills are deliberately left off this list — the maintainer also has a
+family of game-guide and publishing skills bound to one project's framework. Those encode
+a single project, not a reusable harness pattern, so they don't belong in a portable suite.
+Build for your own friction, not someone else's domain.)*
+
+**The byte-faithful mover lesson.** The /checkpoint skill pairs with a small script
+that moves changelog entries from CHECKPOINT.md to the archive file. Why a script and
+not the model? Two failure modes: the model *paraphrases* when it retypes text, and it
+has to load the large, ever-growing archive into context just to find the insertion
+point. The division of labor that works: **the model picks WHICH lines to evict (it
+already has the CHECKPOINT in context); the script does the byte-faithful cut/paste**
+(locates the newest-at-top insertion point itself, preserves encoding and line endings,
+fails closed on a bad range). The model never sees the bytes it's moving. Apply this
+pattern anywhere text must move verbatim between files.
+
+---
+
+### 8d — Guard Hooks: Block Mechanical Breakage, Enforce Orientation
+
+Three hook patterns beyond the SessionStart/PreCompact pair, all generalizable. The first
+two are **PreToolUse** hooks (they run *before* a tool call and can block it); they live as
+two separate matcher-objects in the same `PreToolUse` array, each with its own matcher.
+
+**PreToolUse guard (built, live).** A hook on `Write|Edit|Bash|PowerShell` that blocks
+the tool call when its input contains a character that will *mechanically break* the
+target — before the breakage happens. The maintainer's version blocks exactly two
+things, both Windows-specific:
+- Em/en-dashes and curly quotes going into PowerShell commands or `.ps1` files
+  (PowerShell 5.1 misdecodes non-ASCII as Windows-1252 and fails to parse).
+- Backslash drive paths inside double-quoted strings in Bash commands (on Windows,
+  the Bash tool routes to MSYS bash, which eats backslashes as escapes — `cd
+  "C:\Users\..."` collapses to garbage, and a trailing `\"` escapes the closing
+  quote. Use forward slashes in Bash, always. This one cost 60+ failed commands
+  before it was diagnosed.)
+
+The design principles travel even if your specific breakages differ:
+- **Block only what actually breaks parsing — never style.** An early version blocked
+  em-dashes everywhere; that's a review concern, not a real-time block, and the
+  false positives erode trust in the hook.
+- **Detect banned characters by code point** (e.g. `[char]0x2014`), so the hook file
+  never contains the characters it bans.
+- **Fail OPEN.** Any error in the hook itself must let the tool call through — a
+  buggy guard that fails closed wedges every session.
+- Budget for a few hundred ms of latency per guarded tool call.
+
+**PreToolUse orientation gate (built, live — the recommended one).** This is the hook that
+makes the whole "read CHECKPOINT before acting" rule real instead of advisory. It blocks
+the *first* state-changing tool call of a session until CHECKPOINT.md has been read this
+session, then gets out of the way. Design:
+
+- **Gate only world-changing / external tools.** Read/Grep/Glob and other read-only tools
+  are NEVER gated — the model must stay free to orient. The maintainer gates
+  `Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|WebSearch|WebFetch` plus MCP tools
+  whose method name starts with a write verb (`create|update|delete|send|...`); MCP read
+  methods (`list|get|search|read|...`) pass through.
+- **Block once, then allow (the one-shot escape).** On the first gated action with no prior
+  CHECKPOINT read, drop a per-session sentinel file and exit 2 with a message. If the
+  sentinel already exists, allow — so a genuine pre-oriented one-shot just re-issues the
+  same call to proceed. This is what replaces the old self-judged "skip the ritual" rule:
+  the model still gets an escape, but the default is "you were reminded."
+- **Detect "already oriented" from the transcript.** The hook greps the session transcript
+  for a `Read` tool-use whose path ends in `CHECKPOINT.md`; if found, it never blocks.
+- **No CHECKPOINT nearby → never block.** If there's no CHECKPOINT.md at or above the
+  working directory, there's nothing to orient against, so the gate is a silent no-op.
+- **Fail OPEN.** Any error → exit 0. A gate bug must never wedge a session.
+
+Why a PreToolUse gate and not a prompt-watching hook: it fires at the *action* boundary, so
+it catches a session that simply never read CHECKPOINT regardless of how the prompt was
+worded. The motivating evidence was a 50-session audit — ~1 in 5 actionable sessions acted
+before reading CHECKPOINT, and the model classified "am I already oriented?" unreliably. A
+notice the model can ignore (the SessionStart receipt) wasn't enough; a block it can't is.
+
+The script (PowerShell; adapt the path and the gated-tool list to your setup, and strip the
+maintainer's `Guides/`-style carve-out unless you have an equivalent exempt tree):
+
+```powershell
+# ~/.claude/hooks/orient_gate.ps1
+# Blocks (exit 2) the FIRST world-changing action of a session until CHECKPOINT.md has
+# been read this session, then allows (block-once). Read/Grep/Glob are never gated.
+# Fails OPEN (exit 0) on any error so a gate bug can never wedge a session.
+try {
+    $raw = [Console]::In.ReadToEnd()
+    if ([string]::IsNullOrWhiteSpace($raw)) { exit 0 }
+    $j = $raw | ConvertFrom-Json
+    $tool = "$($j.tool_name)"; $cwd = "$($j.cwd)"
+    $tp = "$($j.transcript_path)"; $sid = "$($j.session_id)"
+
+    $coreGated = @('Write','Edit','MultiEdit','NotebookEdit','Bash','PowerShell','WebSearch','WebFetch')
+    $isGated = $false
+    if ($coreGated -contains $tool) { $isGated = $true }
+    elseif ($tool -like 'mcp__*') {
+        $method = ($tool -split '__')[-1]
+        if ($method -match '^(create|update|delete|add|send|set|fill|apply|save|submit|publish|archive|log|rebuild|respond|upload|insert|remove|patch|write|draft|move|copy)([_]|$)') { $isGated = $true }
+    }
+    if (-not $isGated) { exit 0 }
+
+    # If no CHECKPOINT.md at or above cwd, nothing to orient against -> never block.
+    $hasCp = $false; $dir = $cwd
+    while (-not [string]::IsNullOrEmpty($dir)) {
+        if (Test-Path -LiteralPath (Join-Path $dir 'CHECKPOINT.md')) { $hasCp = $true; break }
+        $parent = Split-Path -LiteralPath $dir -Parent
+        if ([string]::IsNullOrEmpty($parent) -or $parent -eq $dir) { break }
+        $dir = $parent
+    }
+    if (-not $hasCp) { exit 0 }
+
+    # Already read a CHECKPOINT.md this session?
+    if (-not [string]::IsNullOrEmpty($tp) -and (Test-Path -LiteralPath $tp)) {
+        if (Select-String -LiteralPath $tp -Pattern '"name":\s*"Read".*CHECKPOINT\.md' -List -ErrorAction SilentlyContinue) { exit 0 }
+    }
+
+    # Block-once: if we already nudged this session, allow (preserves the one-shot escape).
+    $safeSid = ($sid -replace '[^A-Za-z0-9_-]','_')
+    $flag = Join-Path $env:TEMP ("orient_gate_" + $safeSid + ".flag")
+    if (Test-Path -LiteralPath $flag) { exit 0 }
+    try { Set-Content -LiteralPath $flag -Value '1' -ErrorAction SilentlyContinue } catch {}
+    [Console]::Error.WriteLine("ORIENTATION GATE: this session has not read CHECKPOINT.md and you are about to run a world-changing action (" + $tool + "). FIRST Read the project's CHECKPOINT.md to EOF and follow its Open threads / Next step. If you have genuinely judged this a pre-oriented one-shot, just re-issue this exact call -- the gate fires only once per session.")
+    exit 2
+}
+catch { exit 0 }
+```
+
+Wire BOTH PreToolUse hooks as separate matcher-objects in the same array (note the
+different matchers — the mechanical guard stays narrow, the orientation gate is broader and
+also covers MCP write tools):
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Write|Edit|Bash|PowerShell",
+        "hooks": [ { "type": "command",
+          "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\guard.ps1\"" } ] },
+      { "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|WebSearch|WebFetch|mcp__",
+        "hooks": [ { "type": "command",
+          "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\orient_gate.ps1\"" } ] }
+    ]
+  }
+}
+```
+
+(Use your real absolute path — settings.json doesn't expand `~`. Keep guard and gate as two
+distinct matcher-objects — don't merge them into one matcher, or you'll either widen the
+mechanical guard or narrow the orientation gate.)
+
+**Mac / Linux (bash).** The PowerShell version above is the maintainer's live, tested
+reference; this bash script mirrors its logic line-for-line but has **not been verified on
+macOS/Linux** — treat it as a faithful port to confirm, not battle-tested code, and run the
+Section 6 item-5 test (does it block the first state-changing call once, then release on
+re-issue?) before relying on it. Requires `jq` for the JSON-on-stdin parse (install via your
+package manager); the script fails OPEN if `jq` is missing, so a setup gap can never wedge a
+session:
+
+```bash
+#!/usr/bin/env bash
+# ~/.claude/hooks/orient_gate.sh — PreToolUse orientation gate (Mac/Linux).
+# Mirrors orient_gate.ps1: blocks (exit 2) the FIRST world-changing action of a session
+# until CHECKPOINT.md has been read this session, then allows (block-once). Fails OPEN.
+raw="$(cat)"; [ -z "$raw" ] && exit 0
+command -v jq >/dev/null 2>&1 || exit 0          # no jq -> fail open
+
+tool="$(printf '%s' "$raw" | jq -r '.tool_name // empty')"
+cwd="$( printf '%s' "$raw" | jq -r '.cwd // empty')"
+tp="$(  printf '%s' "$raw" | jq -r '.transcript_path // empty')"
+sid="$( printf '%s' "$raw" | jq -r '.session_id // empty')"
+
+# Gate only world-changing / external tools; read-only tools pass straight through.
+gated=0
+case "$tool" in
+  Write|Edit|MultiEdit|NotebookEdit|Bash|WebSearch|WebFetch) gated=1 ;;
+  mcp__*)
+    method="${tool##*__}"
+    printf '%s' "$method" | grep -Eq '^(create|update|delete|add|send|set|fill|apply|save|submit|publish|archive|log|rebuild|respond|upload|insert|remove|patch|write|draft|move|copy)(_|$)' && gated=1 ;;
+esac
+[ "$gated" = 1 ] || exit 0
+
+# No CHECKPOINT.md at or above cwd -> nothing to orient against -> never block.
+dir="$cwd"; has_cp=0
+while [ -n "$dir" ]; do
+  [ -f "$dir/CHECKPOINT.md" ] && { has_cp=1; break; }
+  parent="$(dirname "$dir")"; [ "$parent" = "$dir" ] && break; dir="$parent"
+done
+[ "$has_cp" = 1 ] || exit 0
+
+# Already read a CHECKPOINT.md this session?
+if [ -n "$tp" ] && [ -f "$tp" ]; then
+  grep -Eq '"name":[[:space:]]*"Read".*CHECKPOINT\.md' "$tp" && exit 0
+fi
+
+# Block-once: per-session sentinel in the temp dir.
+safe_sid="$(printf '%s' "$sid" | tr -c 'A-Za-z0-9_-' '_')"
+flag="${TMPDIR:-/tmp}/orient_gate_${safe_sid}.flag"
+[ -f "$flag" ] && exit 0
+: > "$flag" 2>/dev/null
+
+echo "ORIENTATION GATE: this session has not read CHECKPOINT.md and you are about to run a world-changing action ($tool). FIRST Read the project's CHECKPOINT.md to EOF and follow its Open threads / Next step. If you have genuinely judged this a pre-oriented one-shot, just re-issue this exact call -- the gate fires only once per session." >&2
+exit 2
+```
+
+Wire it (Mac/Linux) — use a real absolute path, `$HOME`/`~` are not expanded in the
+settings string:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|WebSearch|WebFetch|mcp__",
+        "hooks": [ { "type": "command",
+          "command": "bash /Users/you/.claude/hooks/orient_gate.sh" } ] }
+    ]
+  }
+}
+```
+
+(The mechanical guard's specific breakages were Windows-only — em-dashes into PowerShell,
+backslash paths into MSYS bash — so a Mac/Linux setup may not need a guard hook at all. Add
+one only if you have a parsing breakage worth blocking; the orientation gate is the
+cross-platform-valuable one. Verify either gate via the Section 6 checklist item 5 — it
+should block the first state-changing call once, then release on re-issue.)
+
+**UserPromptSubmit rigor injection (still just a sketch).** The orientation gate above
+solved the *orientation* half of the discipline problem structurally; this is a separate,
+narrower, still-unbuilt idea for *semantic* laziness. "Laziness" can't be detected
+deterministically — no hook knows "you punted when the data was available." But a hook CAN
+watch the *user's prompt* for rigor-demanding language ("stop being lazy", "actually
+determine", "from the real data", "prove it") and inject a checklist before Claude answers:
+(1) name the primary source — are you about to read IT, or a summary of it? (2) before
+writing "can't determine," confirm the data isn't already in reach; (3) act, don't narrate
+capability; (4) one thread to a definitive verdict. False positives are nearly free — an
+irrelevant injected checklist just gets ignored. (The maintainer ended up covering most of
+this with skills instead — /prove, /dumb, /prevent — which is why this hook stayed a sketch.)
+
+**On Stop hooks (the end-of-reply event): scope them narrowly.** A Stop hook that
+fires on every reply in every project is log-spam. If you use them at all, gate them
+so they're silent no-ops outside the one tree they serve. And resist the obvious
+temptation to add a per-turn "did you update CHECKPOINT?" Stop hook — the maintainer
+evaluated and rejected it for spam reasons. Checkpoint discipline stays a self-policed
+rule plus the /checkpoint skill.
+
+---
+
+### 8e — A Coding-Craft Layer for Code-Bearing Projects
+
+The harness above governs *operating the workspace*. If some of your projects write
+real code, a second opt-in file governs *writing code* once inside a task: drop a
+`CODING_CRAFT.md` into code-bearing projects only (not docs/tracking projects) and
+point to it from that project's CLAUDE.md. Four disciplines, adapted from
+community-published coding-principle files:
+
+1. **Think before coding** — state assumptions explicitly; if multiple interpretations
+   exist, present them instead of picking one silently; push back when a simpler
+   approach exists.
+2. **Simplicity first** — minimum code that solves the problem; no speculative
+   flexibility, no abstractions for single-use code; "would a senior engineer call
+   this overcomplicated?"
+3. **Surgical changes** — touch only what the request requires; match existing style;
+   remove only what YOUR change orphaned; mention unrelated dead code, don't delete it.
+4. **Goal-driven execution** — translate every task into a verifiable success
+   criterion ("fix the bug" → "write a test that reproduces it, then make it pass");
+   can't verify? Say so in CHECKPOINT rather than marking done.
+
+Keep it opt-in and per-project: these guidelines bias toward caution over speed, and
+they'd be pure overhead on a notes folder.
+
+---
+
+## Section 9 -- How this harness compares to other public patterns
+
+<!-- NOTE FOR HUMANS:
+  This section is for technically-curious readers comparing this guide to other
+  publicly-described Claude Code harness approaches. Skip it if you're just
+  setting up; the rest of the guide doesn't depend on it.
+  Last updated 2026-06-23 (sources surveyed 2026-05-19; not re-surveyed since).
+-->
+
+**Closest public references** (as of 2026-05-19):
+
+- [Anthropic -- Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
+  uses the same "harness" framing. Their pattern pairs an append-style
+  `claude-progress.txt` log with a `feature_list.json` of pass/fail booleans, and
+  includes an initializer-vs-coder two-agent split. Built for greenfield long-
+  running builds, not multi-project personal workspaces.
+- [willseltzer/claude-handoff](https://github.com/willseltzer/claude-handoff)
+  provides `/handoff:create | quick | resume` slash commands that write a single
+  `HANDOFF.md` per repo. Fixed sections include Completed, Not Yet Done,
+  **Failed Approaches**, Key Decisions, Files to Know, Resume Instructions,
+  Current State, Code Context, Setup Required, Warnings. Manually invoked
+  (no hooks); single-repo scoped.
+- [Anthropic -- Using CLAUDE.md files](https://claude.com/blog/using-claude-md-files)
+  plus the "harness engineering" community cluster (Sakasegawa, shipwithaiio)
+  make the same "harness beats model" argument with the SWE-bench citation
+  (+22 pts from harness, +1 pt from model swap).
+- [claudelint](https://claudelint.com/rules/claude-md/claude-md-size) is a
+  community linter that warns when CLAUDE.md exceeds 40KB, but doesn't prescribe
+  an overflow remedy.
+
+**What this guide shares with public discourse**: harness-beats-model framing,
+hierarchical CLAUDE.md, SessionStart hook auto-printing state, PreCompact
+reminders, the "Open threads / Next step" cold-resume idea, the "fix the file,
+not the prompt" mindset.
+
+**What this guide specifies that the public artifacts above don't**:
+
+- A numeric line cap on CLAUDE.md (30) and CHECKPOINT (120, after dense
+  back-to-back work proved a soft ~80 too tight) PLUS a byte budget (~30KB) the
+  line cap can't see, with an explicit overflow remedy (archive oldest changelog
+  entries to `archive/harness_changelog.md`, then compress body, then ask).
+- The **receipt pattern** for surfacing state: a user-level SessionStart hook that
+  prints byte/line counts and tells Claude to Read the file, instead of inlining
+  contents that Claude Code silently truncates to a ~2KB preview. Plus the two
+  failure modes that forced it (workspace-level hooks don't fire in project
+  subfolders; large hook output truncates with no signal) — see Section 4.
+- A **date-led changelog archive standard** (`### YYYY-MM-DD -- summary (vN)`,
+  date as sort key) that survives the version-number collisions you get when
+  concurrent sessions in one folder both bump "vN", and a byte-faithful mover
+  script so the model picks lines but never retypes them (Section 8c).
+- A **no-vacuous-promises rule**: "I'll do X next session" is forbidden unless X
+  is done now or written into CHECKPOINT Open threads in the same turn. The model
+  doesn't persist; the spoken promise is the bug.
+- A **root-cause-before-reporting-a-cause rule** and a **just-act-don't-offer rule**:
+  diagnose a surprising result with real artifacts before naming a cause, and do the work
+  you can do rather than offering to do it. Both are model-behavior disciplines, not config.
+- A **transcript-grounded method for choosing which custom tools to build**:
+  crawl your own session history for friction phrases before building anything
+  (Section 8c). The maintainer's scan inverted his expected priorities.
+- A PreToolUse **orientation gate** that makes read-only work untaxed automatically and
+  structurally enforces "read CHECKPOINT before acting" (block-once, fail-open), backed by
+  benchmark data: the harness adds +56% to +75% turn tax on prompts that don't need
+  orientation, AND a 50-session audit found the model self-classifies "am I oriented?"
+  unreliably — so the boundary is enforced by a hook, not left to the model's judgment.
+  Structural orientation enforcement is genuinely uncommon in published harnesses.
+- A multi-project workspace ledger expressed as a table in the top-level
+  CLAUDE.md.
+- A 30-day staleness rule (built into `Last updated:`) defending against
+  harness drift.
+
+**Caveat about this comparison**: this is a survey of *publicly published*
+artifacts only. People running internal harnesses at scale almost certainly
+have similar or more elaborate patterns; publishing favors simple, adoptable
+shapes, so the public discourse skews simpler than what's actually deployed in
+working setups. Don't read "the public discourse doesn't specify X" as "no one
+does X." Read it as "this guide is more thoroughly specified than what's
+currently published," and form your own view on whether the extra specification
+earns its maintenance cost for your use case.
+
+**Two patterns adopted from comparison (2026-05-19)**:
+
+1. **Failed Approaches as a Key-decisions sub-bullet group.** Borrowed from
+   claude-handoff's mandatory section. Reasoning: failed approaches are the
+   highest-value content a future session cannot reconstruct from files
+   (success leaves code; failure leaves nothing). Placed as a sub-bullet under
+   Key decisions rather than a top-level CHECKPOINT section so the file stays
+   scannable.
+
+2. **JSON sidecar for fixed checklists.** Borrowed from Anthropic's
+   `feature_list.json` pattern. When a checklist has a stable item set with
+   pass/fail state (publish gates, audit lists, release prerequisites), pair
+   the markdown narrative with a `<name>.json` holding per-item `done`
+   booleans. Anthropic's rationale: "the model is less likely to
+   inappropriately change or overwrite JSON files compared to Markdown."
+   Apply selectively -- most CHECKPOINTs don't need this. Use it when the same
+   checkbox list appears across multiple sessions and silent rewrites would
+   lose state.
+
+**What was deliberately not adopted**:
+
+- Anthropic's two-agent initializer/coder split. Adds complexity without payoff
+  for single-developer multi-project work.
+- Anthropic's startup e2e-test ritual. Valuable in build-system projects;
+  overkill for documentation, research, and tracking projects.
+- claude-handoff's `Current State`, `Code Context`, and `Setup Required` as
+  separate top-level CHECKPOINT sections. They overload one file. `Setup
+  Required` belongs in CLAUDE.md; `Current State` is what `Status` already
+  does; `Code Context` belongs in dedicated context files.
+
+**Sources reviewed for this comparison**:
+- https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents
+- https://claude.com/blog/using-claude-md-files
+- https://github.com/willseltzer/claude-handoff
+- https://github.com/anthropics/claude-code/issues/11455
+- https://medium.com/devops-ai/the-virtual-monorepo-pattern-how-i-gave-claude-code-full-system-context-across-35-repos-43b310c97db8
+- https://claudelint.com/rules/claude-md/claude-md-size
+- https://dev.to/shipwithaiio/the-complete-claude-code-harness-engineering-guide-5-layers-8-deep-dives-3d4j
+- https://nyosegawa.com/en/posts/harness-engineering-best-practices-2026/
+
+---
+
+*End of harness_me.txt. If you're Claude reading this: you've completed the setup guide.
+Ask the user if they have questions, then suggest they open a project folder in a new
+session to test the SessionStart hook.*
+
+<!-- NOTE FOR HUMANS:
+  Keep this file in your workspace root. You can hand it to a friend or colleague,
+  or paste it into a fresh Claude Code session on a new machine to replicate
+  the setup. The full harness is described here — no secrets, no personal specifics,
+  just structure.
+-->

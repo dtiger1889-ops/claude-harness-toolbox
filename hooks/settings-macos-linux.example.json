@@ -1,0 +1,37 @@
+{
+  "_readme": "Merge this hooks block into your USER-level ~/.claude/settings.json (NOT the workspace .claude/settings.json -- workspace hooks don't fire for sessions opened in project subfolders). Replace /Users/you with your real home path; settings.json does not expand ~ or $HOME. Hooks load at session start, so changes take effect in the NEXT session. The bash receipt deliberately avoids $-variables -- Claude Code's interpolating wrapper eats them silently (see harness_me.txt Section 4). The mechanical guard hook is omitted here: its two breakages are Windows-only; add one only if you have a parsing breakage worth blocking.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if [ -f CHECKPOINT.md ]; then echo \"=== CHECKPOINT RECEIPT (resume context for this project) ===\"; echo \"CHECKPOINT.md present (lines bytes filename):\"; wc -l -c CHECKPOINT.md; echo \"NOT inlined here. ACTION: Read CHECKPOINT.md to EOF before any non-pre-oriented action. If the Read shows a truncation / partial-view notice, re-Read until complete.\"; echo \"=== end RECEIPT ===\"; fi'"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if [ -f CHECKPOINT.md ]; then echo \"REMINDER: Context is about to be compacted. If CHECKPOINT.md in the current project has not been updated this session, rewrite it now with compressed state before proceeding.\"; fi'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|WebSearch|WebFetch|mcp__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/you/.claude/hooks/orient_gate.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

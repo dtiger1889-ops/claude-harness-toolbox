@@ -1,0 +1,46 @@
+{
+  "_readme": "Merge this hooks block into your USER-level ~/.claude/settings.json (NOT the workspace .claude/settings.json -- workspace hooks don't fire for sessions opened in project subfolders). Replace C:\\Users\\you with your real profile path; settings.json does not expand ~. Hooks load at session start, so changes take effect in the NEXT session. Keep hook command strings free of $, <, >, and non-ASCII -- Claude Code's interpolating wrapper eats them silently (see harness_me.txt Section 4).",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -Command \"try { if (Test-Path CHECKPOINT.md) { Write-Output '=== CHECKPOINT RECEIPT (resume context for this project) ==='; Write-Output ('CHECKPOINT.md present: ' + (Get-Item CHECKPOINT.md).Length + ' bytes / ' + @(Get-Content CHECKPOINT.md).Count + ' lines. NOT inlined here.'); Write-Output 'ACTION: Read CHECKPOINT.md to EOF before any non-pre-oriented action. If the Read shows a truncation / partial-view notice, re-Read with offset+limit until complete.'; Write-Output '=== end RECEIPT ===' } } catch { Write-Output '=== CHECKPOINT RECEIPT ERROR -- manually Read CHECKPOINT.md before acting ===' }\""
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -Command \"if (Test-Path CHECKPOINT.md) { Write-Output 'REMINDER: Context is about to be compacted. If CHECKPOINT.md in the current project has not been updated this session, rewrite it now with compressed state before proceeding.' }\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\guard.ps1\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|WebSearch|WebFetch|mcp__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\orient_gate.ps1\""
+          }
+        ]
+      }
+    ]
+  }
+}

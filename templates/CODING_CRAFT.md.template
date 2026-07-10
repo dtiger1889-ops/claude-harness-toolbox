@@ -1,0 +1,49 @@
+# Coding craft -- code-bearing project add-on
+<!-- v1 -- 2026-06-01 -->
+
+Opt-in behavioral layer for projects that write real code. The workspace
+harness governs *operating* the workspace; this governs *writing code* once
+you are inside a task. Drop into a
+code-bearing project as `<project>/CODING_CRAFT.md` and point to it from that
+project's CLAUDE.md `## Pointers`. Adapted from the four coding-discipline
+principles in multica-ai/andrej-karpathy-skills `CLAUDE.md`.
+
+These guidelines bias toward caution over speed. For trivial edits, use judgment
+-- the same escape hatch as the workspace "pre-oriented prompt, skip the ritual"
+rule.
+
+## 1. Think before coding
+Don't assume, don't hide confusion, surface tradeoffs.
+- State assumptions explicitly. If uncertain, ask before implementing.
+- If multiple interpretations exist, present them -- don't pick one silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop, name what is confusing, and ask.
+
+## 2. Simplicity first
+Minimum code that solves the problem. Nothing speculative.
+- No features beyond what was asked. No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you wrote 200 lines and it could be 50, rewrite it. Test: "would a senior
+  engineer call this overcomplicated?" If yes, simplify.
+
+## 3. Surgical changes
+Touch only what you must. Clean up only your own mess.
+- Don't "improve" adjacent code, comments, or formatting. Match existing style
+  even if you would do it differently. Don't refactor what isn't broken.
+- Remove imports/vars/functions that YOUR change orphaned -- nothing pre-existing.
+- Notice unrelated dead code? Mention it, don't delete it. (Same instinct as the
+  workspace no-unsolicited-cleanup and destructive-operations rules.)
+- Test: every changed line traces directly to the request.
+
+## 4. Goal-driven execution
+Define success criteria, loop until verified. (The code-level form of the
+workspace "explicit completeness" and "feedback loops bound quality" principles.)
+- "Add validation" -> "write tests for invalid inputs, then make them pass".
+- "Fix the bug" -> "write a test that reproduces it, then make it pass".
+- "Refactor X" -> "ensure the same tests pass before and after".
+- For multi-step work, state the plan as `step -> verify: check` lines.
+- Can't verify? Say so in CHECKPOINT rather than marking it done.
+
+Working if: fewer unnecessary diff lines, fewer rewrites from overcomplication,
+and clarifying questions land before implementation instead of after mistakes.

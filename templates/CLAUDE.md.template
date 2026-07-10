@@ -1,0 +1,28 @@
+# [project name]
+<!-- v1 — [YYYY-MM-DD HH:MM UTC] -->
+
+[1-3 sentence purpose. What is this and why does it exist? Stable info only — things that don't change session-to-session.]
+
+## Run it
+
+```
+[primary command(s) to actually use this project]
+```
+
+## Gotchas
+
+- [thing that surprised you the first time and would surprise a fresh session]
+- [environment-specific quirk, e.g. "cloud sandbox 403s on this domain — runs fine from home"]
+- [explicit don't-do, e.g. "don't push to main without explicit OK"]
+
+## Pointers
+
+- `CHECKPOINT.md` — current state, open threads, next step.
+- [`OTHER.md`] — [what it holds; read on demand]
+- [external link if relevant — Apps Script project, dashboard URL, etc.]
+
+<!--
+Hard cap: ≤30 lines. If this grows past 30, move surplus to a project-scoped
+artifact (ARCHITECTURE.md, INVENTORY.md, etc.) and reference it here.
+Bump version stamp on substantive edits; cosmetic edits don't bump.
+-->
