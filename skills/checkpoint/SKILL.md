@@ -32,7 +32,7 @@ reality so a cold session can resume from it alone.
    Status (1) -> Goal (1-3) -> Research (only during an active milestone research phase) ->
    Key decisions (with a **Failed approaches:** sub-bullet group where relevant) ->
    Open threads -> Files that matter (path + 1-line why) -> Harness changelog (only if the
-   project versions its CLAUDE.md) -> Next step (1).
+   project versions its CLAUDE.md) -> Next step (one declared shape: Action / HOLD / Pick).
    **Section roles -- each answers ONE question; the drift to fight is them leaking into
    each other (separate by TENSE and by STABILITY):**
    - `Last updated:` = a TIMESTAMP (present-tense stamp), NOT a change summary -- see step 5.
@@ -44,7 +44,15 @@ reality so a cold session can resume from it alone.
      standing rule, it belongs in the project's CLAUDE.md or a `decisions/` doc -- move it out,
      don't duplicate it here. If a decision is closed/done, its record is its changelog entry --
      prune it; never keep a `## Closed this session` graveyard. Litmus: still contestable AND only here?
-   - `Next step` (1 line) = the single literal next action. This section, not Status, owns "what's next."
+   - `Next step` = ONE of three declared shapes (the workspace CLAUDE.md Section roles spec is
+     canonical): **Action** (one literal next action -- only when a single workstream is live
+     right now), **HOLD** (`HOLD -- <what the human must decide/do>; don't <gated action> until
+     then`), or **Pick** (`Pick from Open threads (live ask outranks; then ready + [high] first)`
+     -- the DEFAULT for non-linear projects with several live threads). A stale shape gets
+     FLIPPED (Action gone stale -> Pick), never defended. This section, not Status, owns
+     "what's next." Open threads bullets may carry optional tags: `[high]` / `[blocked-by: X]` /
+     `[gates: Y]` / `[quick|moderate|heavy]` / `[human]` for human-gated items; ready =
+     runnable + not blocked. Tag only where it earns its keep.
    - When you MOVE content out of a section during a rewrite (hardened rule -> CLAUDE.md; closed
      decision / old changelog -> archive), relocate it for real -- never silently drop it. Changelog
      overflow uses the archiver in step 6(a); a closed-decision block with no other home gets a

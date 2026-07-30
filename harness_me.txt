@@ -500,13 +500,22 @@ only here?]
 
 ## Open threads
 - (bullets — the source of truth for incomplete work; reads like a to-do list, never a
-  graveyard of done items)
+  graveyard of done items. Optional tags where they earn their keep: `[high]` priority ·
+  `[blocked-by: X]` / `[gates: Y]` · `[quick|moderate|heavy]` effort · `[human]` for
+  human-gated items — untagged means agent-runnable)
 
 ## Files that matter
 - `[path]` — [one-line role]
 
 ## Next step
-[One explicit, actionable sentence. This section, not Status, owns "what's next."]
+[ONE of three declared shapes — pick what matches reality; a later session finding it
+stale flips the shape rather than defending it:
+  Action — one explicit, actionable sentence (only when a single workstream is live), OR
+  HOLD — <what the human must decide/do>; don't <gated action> until then, OR
+  Pick — Pick from Open threads (live ask outranks; then ready + [high] first).
+Pick is the default for non-linear projects — a stored single pointer is a strong stale
+signal that future sessions will defend against the user; when several workstreams are
+live at once, don't store one. This section, not Status, owns "what's next."]
 ```
 
 *The `Last updated:` line is your defense against stale-harness drift — it doubles as the

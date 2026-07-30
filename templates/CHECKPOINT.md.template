@@ -27,7 +27,7 @@ prune it (no "Closed this session" graveyard). Litmus: still contestable AND rec
 - **Failed approaches:** [what was tried and abandoned, and why — a future session can't reconstruct this from files. Include only when relevant.]
 
 ## Open threads
-- [bullet: a discrete piece of OPEN work still to do. Specific enough that "done" is checkable. Reads like a to-do list, never a graveyard of finished items.]
+- [bullet: a discrete piece of OPEN work still to do. Specific enough that "done" is checkable. Reads like a to-do list, never a graveyard of finished items. Optional tags where they earn their keep: `[high]` priority · `[blocked-by: X]` / `[gates: Y]` · `[quick|moderate|heavy]` effort · `[human]` for human-gated items (untagged = agent-runnable).]
 - [bullet]
 
 ## Files that matter
@@ -35,7 +35,12 @@ prune it (no "Closed this session" graveyard). Litmus: still contestable AND rec
 - `path/to/file` — [1-line why]
 
 ## Next step
-[1 line: the single literal next action when this session resumes. This section, not Status, owns "what's next."]
+[ONE of three declared shapes — pick what matches reality; a later session finding it stale
+flips the shape rather than defending it:
+  Action — one literal next action (only when a single workstream is live right now), OR
+  HOLD — <what the human must decide/do>; don't <gated action> until then, OR
+  Pick — Pick from Open threads (live ask outranks; then ready + [high] first).
+Pick is the default for non-linear projects. This section, not Status, owns "what's next."]
 
 <!--
 Overwrite in place; don't append. Hard cap: 120 lines AND ~30KB. Goal is compressed
