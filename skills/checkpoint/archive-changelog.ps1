@@ -59,23 +59,60 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# Hoisted so the READ phase can log a FAIL too. The write phase already logged, but a
+# permanent lock on the read side used to escape as a raw .NET exception with no audit
+# line -- invisible in archive-changelog.log, which is the one place a bad run is meant
+# to be reconstructible from. (2026-07-30)
+$scriptDirTop = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $Checkpoint }
+$logFileTop   = Join-Path $scriptDirTop 'archive-changelog.log'
+
 function Fail([string]$msg) {
   Write-Error "[archive-changelog] REFUSED: $msg"
   exit 1
 }
 
+function Invoke-IoRetry([scriptblock]$op, [string]$what) {
+  # TRANSIENT-LOCK RETRY (added 2026-07-30 after a real FAIL in archive-changelog.log:
+  # "cannot be performed on a file with a user-mapped section open").
+  # These files live on a Drive-synced, Defender-scanned, Search-indexed tree, so another
+  # process can hold the target open or memory-mapped for a few seconds. Both directions
+  # break: a mapped section blocks the truncating WRITE (ERROR_USER_MAPPED_FILE) and an
+  # exclusive open blocks the READ (sharing violation). Both surface as IOException and
+  # both clear on their own -- the live incident succeeded on a manual re-run 29 s later.
+  # ONLY IOException retries: UnauthorizedAccessException (ACL, read-only file) is a real
+  # error and must still fail fast. ~15.5 s of total wait before giving up.
+  # NOTE: notices go to the WARNING stream on purpose. This helper's return value is
+  # consumed (`$raw = Invoke-IoRetry {...}`), so a Write-Output here would be appended to
+  # the caller's pipeline and silently corrupt that value into an array.
+  $delaysMs = @(500, 1000, 2000, 4000, 8000)
+  for ($a = 0; $a -le $delaysMs.Count; $a++) {
+    try {
+      $r = & $op
+      if ($a -gt 0) { Write-Warning "[archive-changelog] transient lock cleared: $what succeeded on attempt $($a + 1)" }
+      return $r
+    } catch {
+      # Unwrap PowerShell's MethodInvocationException so the type test sees the real cause.
+      $ex = $_.Exception
+      while ($ex.InnerException) { $ex = $ex.InnerException }
+      if (($ex -isnot [System.IO.IOException]) -or ($a -eq $delaysMs.Count)) { throw }
+      Write-Warning "[archive-changelog] locked by another process, retrying $what in $($delaysMs[$a]) ms"
+      Start-Sleep -Milliseconds $delaysMs[$a]
+    }
+  }
+}
+
 function Get-Lines([string]$path) {
   # Returns @{ Lines = string[]; NL = newline } with EOL preserved, trailing NL normalized away.
-  $raw = [System.IO.File]::ReadAllText($path)
+  $raw = Invoke-IoRetry { [System.IO.File]::ReadAllText($path) } "read of $path"
   $nl  = if ($raw.Contains("`r`n")) { "`r`n" } else { "`n" }
-  $lines = [System.IO.File]::ReadAllLines($path)   # strips per-line EOL uniformly
+  $lines = Invoke-IoRetry { [System.IO.File]::ReadAllLines($path) } "read of $path"   # strips per-line EOL uniformly
   return @{ Lines = @($lines); NL = $nl }
 }
 
 function Save-Lines([string]$path, [string[]]$lines, [string]$nl) {
   $body = [string]::Join($nl, $lines) + $nl       # always end with one trailing newline
   $enc  = New-Object System.Text.UTF8Encoding($false)   # $false = no BOM
-  [System.IO.File]::WriteAllText($path, $body, $enc)
+  Invoke-IoRetry { [System.IO.File]::WriteAllText($path, $body, $enc) } "write of $path" | Out-Null
 }
 
 function Write-Log([string]$logPath, [string]$msg) {
@@ -97,7 +134,10 @@ function Byte-Count([string[]]$lines, [string]$nl) {
 
 # --- Validate checkpoint + range -------------------------------------------------
 if (-not (Test-Path -LiteralPath $Checkpoint)) { Fail "Checkpoint not found: $Checkpoint" }
-$cp = Get-Lines $Checkpoint
+try { $cp = Get-Lines $Checkpoint } catch {
+  Write-Log $logFileTop ("FAIL  moved {0}..{1} | cp {2} | arc {3} | ERROR (checkpoint read): {4}" -f $FromLine, $ToLine, $Checkpoint, $Archive, $_.Exception.Message)
+  Fail "could not read the checkpoint after retrying a locked file (nothing written): $($_.Exception.Message)"
+}
 $cpLines = $cp.Lines
 $cpN = $cpLines.Count
 
@@ -122,7 +162,10 @@ if ($freshArchive) {
   $arcNL = $cp.NL
   $effInsert = $arcLines.Count        # insert after the seeded header
 } else {
-  $arc = Get-Lines $Archive
+  try { $arc = Get-Lines $Archive } catch {
+    Write-Log $logFileTop ("FAIL  moved {0}..{1} | cp {2} | arc {3} | ERROR (archive read): {4}" -f $FromLine, $ToLine, $Checkpoint, $Archive, $_.Exception.Message)
+    Fail "could not read the archive after retrying a locked file (checkpoint untouched, nothing lost): $($_.Exception.Message)"
+  }
   $arcLines = $arc.Lines
   $arcNL = $arc.NL
   if ($AtTop) {
@@ -201,6 +244,11 @@ if (-not $DryRun) {
     Write-Output "  backed up originals -> $backupDir\${stamp}_*.bak"
     Write-Output "  logged -> $logFile"
     Write-Output "  done."
+    # The caller is an agent holding a read snapshot of the checkpoint it just edited.
+    # This script rewrote that file out-of-band, so the snapshot is now stale and the very
+    # next Edit is rejected ("File has been modified since read"). Say so here, in the
+    # tool result the caller is already reading, rather than relying on it to remember.
+    Write-Output "  NOTE: this script rewrote BOTH files on disk. Re-Read the CHECKPOINT before your next Edit to it -- your read snapshot is stale and the Edit will otherwise be rejected."
   } catch {
     Write-Log $logFile ("FAIL  moved {0}..{1} | cp {2} | arc {3} | ERROR: {4}" -f $FromLine, $ToLine, $Checkpoint, $Archive, $_.Exception.Message)
     Fail "write failed (originals preserved in $backupDir): $($_.Exception.Message)"

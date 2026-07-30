@@ -118,6 +118,9 @@ reality so a cold session can resume from it alone.
    -PrependHeader "### YYYY-MM-DD -- ..." so the script places it in the SAME move; date-led
    projects skip it (entries carry their own headers). Then patch only the one-line CHECKPOINT
    pointer + (if the archive was just created) its <project> header line.
+   RE-READ BEFORE THAT PATCH: the script rewrote the CHECKPOINT on disk, so the read
+   snapshot behind your earlier edits is stale and the next Edit is rejected with "File has
+   been modified since read". `Read` the file first -- the script prints this reminder too.
    (b) if still over, compress Open threads + tighten the Last-updated line;
    (c) if still over, ASK before overflowing -- never ship an over-cap file silently.
    For a fixed checklist with a stable item set, keep per-item done-state in a JSON sidecar
