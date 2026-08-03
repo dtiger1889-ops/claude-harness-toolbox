@@ -623,8 +623,10 @@ Three implementation gotchas, learned the hard way:
   characters (`<`/`>`) get mangled, so write `(UUID)` not `<UUID>` in a hook message; and
   em-dashes / curly quotes inside the command string break PowerShell's parse. Keep hook
   command strings ASCII and free of redirect characters.
-- **Hooks load at session start.** After editing settings.json, the change takes effect
-  in the *next* session, not the current one.
+- **Hook edits usually hot-reload, but verify.** Per the current official docs, direct
+  edits to hooks in settings files are normally picked up automatically by a file
+  watcher. If an edited hook doesn't seem to fire, start a new session — that has
+  always worked, and older Claude Code versions loaded hooks only at session start.
 
 ### Windows (PowerShell)
 
@@ -866,7 +868,7 @@ pitching this pattern to others.
 **Claude instructions:** After building the harness, verify these
 with the user:
 
-1. **SessionStart receipt fires:** Open a NEW session (hooks load at session start)
+1. **SessionStart receipt fires:** Open a NEW session (guarantees the hook is loaded)
    with the working directory set to any project folder under the workspace. A
    "CHECKPOINT RECEIPT" block with the file's byte/line count should appear in the
    first system message — and Claude should then Read CHECKPOINT.md before acting.
