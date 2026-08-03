@@ -205,6 +205,18 @@ the project ledger (the table of which projects exist, what each is for). Earlie
 versions of this harness split those into two files (one at root, one in `Projects/`);
 combining them removes a redirection layer that didn't earn its keep.
 
+One more budget on the root file: **Claude Code warns when a CLAUDE.md exceeds ~40,000
+characters — treat the warning as a hard budget.** The file loads into every session's
+context, so an oversized rulebook taxes every turn. What pushes a mature rulebook over
+is rarely the rules; it's the incident stories that justify them ("why this rule
+exists") accreting inline. The diet that works: archive the full long-form text
+verbatim first (e.g. `archive/CLAUDE_vNN_full.md`), then compress each rule's rationale
+to its date plus a pointer at the detail doc — every rule survives, the war-stories
+live one hop away instead of in the every-session read path. (The maintainer's root
+file hit 55k characters before Claude Code flagged it; the slim pass cut 28% of the
+bytes without dropping a single rule.) This is the same progressive-disclosure move
+the whole harness is built on, applied to the harness's own rulebook.
+
 **CHECKPOINT.md** — A compressed state file that captures where a project stands right
 now: status, open threads, next step, key decisions. It is *overwritten in place* each
 time — not appended to. Appending creates a log that grows without bound and defeats the
@@ -697,6 +709,30 @@ Both live as separate matcher-objects inside the same `PreToolUse` array — see
 for the scripts and the exact settings.json shape. They're "recommended" rather than
 "core" only because they're a bit more involved than the two inline hooks above;
 functionally the orientation gate is the load-bearing one.
+
+### Optional: a session-environment receipt (tmux / SSH / remote launches)
+
+If you ever launch Claude Code from somewhere other than your desktop — SSH from a
+phone, inside tmux, a login shell with its own PATH — the session inherits that
+environment's quirks and, worse, cannot tell it did. The maintainer's failure mode:
+sessions launched phone → SSH → tmux (MSYS2 on Windows) inherit a stripped PATH in
+BOTH shell tools, so `node`, `git`, `python` fail by bare name while fully installed,
+and every such session re-derived the wrong conclusion ("not installed") from scratch.
+
+The fix has two halves:
+
+- **Root fix where possible** — make the launch environment match the desktop. For
+  MSYS2 the lever is `MSYS2_PATH_TYPE=inherit` set in whatever launches the login
+  shell: `/etc/profile` then appends the full Windows PATH instead of discarding it.
+- **A SessionStart receipt for whatever difference remains** — `hooks/tmux_receipt.ps1`
+  detects the environment (TMUX/MSYSTEM env vars, or a PATH signature) and prints a
+  short notice: what's different, and where the full workaround doc lives. Silent
+  no-op on desktop launches.
+
+The generic lesson: **when a session can't observe which world it's in, a hook that
+tells it beats a rule that assumes it.** Adapt the detection markers and the message to
+whatever your remote launch path actually changes — and verify the markers from a real
+remote session before trusting them.
 
 ### A standing rule that pairs with the receipt
 

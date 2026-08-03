@@ -1,9 +1,13 @@
 {
-  "_readme": "Merge this hooks block into your USER-level ~/.claude/settings.json (NOT the workspace .claude/settings.json -- workspace hooks don't fire for sessions opened in project subfolders). Replace C:\\Users\\you with your real profile path; settings.json does not expand ~. Hooks load at session start, so changes take effect in the NEXT session. Keep hook command strings free of $, <, >, and non-ASCII -- Claude Code's interpolating wrapper eats them silently (see harness_me.txt Section 4).",
+  "_readme": "Merge this hooks block into your USER-level ~/.claude/settings.json (NOT the workspace .claude/settings.json -- workspace hooks don't fire for sessions opened in project subfolders). Replace C:\\Users\\you with your real profile path; settings.json does not expand ~. Hooks load at session start, so changes take effect in the NEXT session. Keep hook command strings free of $, <, >, and non-ASCII -- Claude Code's interpolating wrapper eats them silently (see harness_me.txt Section 4). The tmux_receipt SessionStart entry is OPTIONAL -- it is a silent no-op on desktop launches, but drop it if you never launch Claude Code from tmux/SSH, and adapt the script's detection before relying on it (see the ADAPT note in tmux_receipt.ps1).",
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\tmux_receipt.ps1\""
+          },
           {
             "type": "command",
             "command": "powershell.exe -NoProfile -Command \"try { if (Test-Path CHECKPOINT.md) { Write-Output '=== CHECKPOINT RECEIPT (resume context for this project) ==='; Write-Output ('CHECKPOINT.md present: ' + (Get-Item CHECKPOINT.md).Length + ' bytes / ' + @(Get-Content CHECKPOINT.md).Count + ' lines. NOT inlined here.'); Write-Output 'ACTION: Read CHECKPOINT.md to EOF before any non-pre-oriented action. If the Read shows a truncation / partial-view notice, re-Read with offset+limit until complete.'; Write-Output '=== end RECEIPT ===' } } catch { Write-Output '=== CHECKPOINT RECEIPT ERROR -- manually Read CHECKPOINT.md before acting ===' }\""
