@@ -9,13 +9,13 @@
   You can also read this file in any text editor — the comments
   explain every step in plain English.
 
-  Last updated 2026-06-23. The biggest change since the 2026-06-09 version:
-  a third hook — a PreToolUse "orientation gate" — now structurally enforces
-  the read-CHECKPOINT-before-acting rule that earlier versions left to the
-  model's own judgment (which a 50-session audit found it applied
-  unreliably). See Section 4 and Section 8d. The hook section itself was
-  rebuilt in the prior version after the old design silently failed in two
-  ways (also Section 4).
+  Last updated 2026-08-05. The newest addition is an optional Windows
+  PreToolUse security backstop: it scans full shell commands and blocks a
+  deliberately narrow set of catastrophic operations, including broad
+  name/pattern/pipeline process kills. See Section 8d. The orientation gate
+  remains the recommended hook: it structurally enforces
+  read-CHECKPOINT-before-acting, which earlier versions left to the model's
+  own judgment (a 50-session audit found that unreliable).
   ============================================================ -->
 
 ## What this file does
@@ -1225,9 +1225,9 @@ pattern anywhere text must move verbatim between files.
 
 ### 8d — Guard Hooks: Block Mechanical Breakage, Enforce Orientation
 
-Three hook patterns beyond the SessionStart/PreCompact pair, all generalizable. The first
-two are **PreToolUse** hooks (they run *before* a tool call and can block it); they live as
-two separate matcher-objects in the same `PreToolUse` array, each with its own matcher.
+Four hook patterns beyond the SessionStart/PreCompact pair, all generalizable. Three are
+**PreToolUse** hooks (they run *before* a tool call and can block it); they live as
+separate matcher-objects in the same `PreToolUse` array, each with its own matcher.
 
 **PreToolUse guard (built, live).** A hook on `Write|Edit|Bash|PowerShell` that blocks
 the tool call when its input contains a character that will *mechanically break* the
@@ -1328,9 +1328,24 @@ try {
 catch { exit 0 }
 ```
 
-Wire BOTH PreToolUse hooks as separate matcher-objects in the same array (note the
-different matchers — the mechanical guard stays narrow, the orientation gate is broader and
-also covers MCP write tools):
+**PreToolUse security backstop (optional, Windows).** The security backstop is a different
+kind of guard: it reads the *entire* raw Bash or PowerShell command rather than trusting a
+deny-rule prefix matcher. That means command substitution, backticks, and loop bodies cannot
+hide a matched operation. Its narrow default rules block network fetches piped to a shell,
+`sudo`, recursive force-deletion of root/home/drive-root or a bare variable, recursive
+PowerShell deletion of the equivalent targets, `Set-ExecutionPolicy`, and process kills
+selected by name, pattern, or an unfiltered pipeline. PID-targeted termination is allowed.
+
+This is a safety boundary, not a universal policy. Read
+[`hooks/deny_backstop.ps1`](hooks/deny_backstop.ps1), then adapt its patterns to your
+environment before enabling it. It deliberately fails OPEN if it cannot parse its input, and
+its raw-text design can occasionally over-block a command that merely quotes a dangerous
+literal. The tradeoff is intentional: a false positive is recoverable; an auto-approved
+machine-wide deletion or broad process kill may not be.
+
+Wire the three Windows PreToolUse hooks as separate matcher-objects in the same array (note
+the different matchers — the mechanical guard stays narrow, the backstop protects shell
+commands, and the orientation gate is broader and also covers MCP write tools):
 
 ```json
 {
@@ -1339,6 +1354,9 @@ also covers MCP write tools):
       { "matcher": "Write|Edit|Bash|PowerShell",
         "hooks": [ { "type": "command",
           "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\guard.ps1\"" } ] },
+      { "matcher": "Bash|PowerShell",
+        "hooks": [ { "type": "command",
+          "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\deny_backstop.ps1\"" } ] },
       { "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|WebSearch|WebFetch|mcp__",
         "hooks": [ { "type": "command",
           "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\orient_gate.ps1\"" } ] }
@@ -1347,9 +1365,9 @@ also covers MCP write tools):
 }
 ```
 
-(Use your real absolute path — settings.json doesn't expand `~`. Keep guard and gate as two
-distinct matcher-objects — don't merge them into one matcher, or you'll either widen the
-mechanical guard or narrow the orientation gate.)
+(Use your real absolute path — settings.json doesn't expand `~`. Keep the hooks as distinct
+matcher-objects — don't merge them into one matcher, or you'll change which calls each
+policy sees.)
 
 **Mac / Linux (bash).** The PowerShell version above is the maintainer's live, tested
 reference; this bash script mirrors its logic line-for-line but has **not been verified on
