@@ -11,7 +11,8 @@ description: Re-explain a dense, jargon-loaded, or code-stuffed response in plai
 
 # plain -- translate a dense/jargon response into plain English
 
-The standing rule this enforces: plain, verbose English in chat, no self-invented codes.
+The standing rule this enforces: understandable, digestible English in chat -- every
+self-invented code glossed in plain words, nothing buried under process narration.
 It keeps getting violated -- responses come back stuffed with filing codes (`F027`, `B13`,
 `PTT`, a `def_hash`...), unexpanded acronyms, and compressed noun-stacks that are a wall
 to read. This skill is the fix: take that response and SAY IT AGAIN in plain,
@@ -38,7 +39,8 @@ Default target: the immediately previous assistant message. If the user pasted t
 5. **Structure for reading** -- short paragraphs or a plain list, not a block.
 
 ## Rules
-- Plain, generous English. Verbose is correct here; terse is wrong.
+- Plain, conversational English, structured to be digestible: answer first, short
+  paragraphs, expansive enough to define every term -- never a wall of text.
 - Never invent a meaning for a code you couldn't resolve.
 - Don't add new analysis, opinions, or next steps -- just make the existing content legible.
   If the user wants more, they'll ask.
