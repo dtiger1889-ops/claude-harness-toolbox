@@ -48,7 +48,6 @@ Then, optionally:
 | `skills/prove/` | `/prove` — extracts every factual claim from the last response and verifies each against files first, then the web; per-claim Confirmed / Wrong / Unverified with citations. |
 | `skills/dumb/` | `/dumb` — "that was wrong (or lazy), fix it": fires on wrongness AND on laziness — punting, offering instead of doing, half-answers. Forbids defending the previous response, forces a one-line honest diagnosis plus the actual fix. |
 | `skills/redteam/` | `/redteam` — one adversarial pass that assumes the target is wrong and hunts the fatal flaw. The cheap middle gear between a single-shot answer and `/fanout`. |
-| `skills/outside/` | `/outside` — one cheap external-grounding pass before committing to an approach: shipped-solutions sweep, sibling-project sweep, notes check; verdict-first report with exactly one next action. The "did someone already build this?" gear the rest of the suite lacks. |
 | `skills/fanout/` | `/fanout` — 5 parallel cognitive-frame ideation agents + a critic pass, for open-ended problems only. ~7x tokens, explicitly gated, never automatic. |
 | `skills/breakdown/` | `/breakdown` — convergent, action-first decomposition: real goal, smallest next action, the one blocking decision, collapsed plan, first trap. |
 | `skills/plain/` | `/plain` — re-explains a dense/jargon response in plain generous English, resolving every invented code by looking it up (never guessing). |
