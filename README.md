@@ -56,8 +56,9 @@ Then, optionally:
 | `skills/optimize-prompt/` | `/optimize-prompt` — one deliberate rewrite pass applying Anthropic's current prompt-engineering best practices to an existing draft prompt; `--check` diagnoses without rewriting; never overwrites the source. |
 | `hooks/orient_gate.ps1` / `.sh` | PreToolUse **orientation gate**: blocks the first state-changing tool call of a session until CHECKPOINT.md has been read, then gets out of the way (block-once, fail-open; read-only tools are never gated). |
 | `hooks/guard.ps1` | PreToolUse **mechanical guard**: blocks tool input that would literally break parsing (Windows-specific: non-ASCII into PowerShell, backslash paths into MSYS bash). Adapt to your own breakages; never block style. |
+| `hooks/deny_backstop.ps1` | PreToolUse **security backstop**: scans the complete Bash/PowerShell command, including command substitution and loop bodies, and blocks a narrow set of catastrophic operations. It includes broad name/pattern/pipeline process kills, requiring an explicit PID instead. Review and adapt its patterns before enabling it. |
 | `hooks/tmux_receipt.ps1` | SessionStart **environment receipt** (optional): detects a tmux/SSH-launched session (stripped PATH, different world than the desktop) and tells the session so, once, at start — so it stops re-deriving "tool not installed" conclusions from bare-name failures. Silent no-op on desktop launches; adapt detection + message to your own remote launch path. |
-| `hooks/settings-*.example.json` | The SessionStart receipt + PreCompact reminder + both PreToolUse hooks, wired for Windows and Mac/Linux. |
+| `hooks/settings-*.example.json` | The SessionStart receipt + PreCompact reminder + PreToolUse hooks, wired for Windows and Mac/Linux. The Windows example also wires the optional security backstop. |
 | `templates/` | Per-project `CLAUDE.md` / `CHECKPOINT.md` skeletons, an opt-in `CODING_CRAFT.md` layer for code-bearing projects, and a baseline `.gitignore`. |
 
 ## Why trust any of this
