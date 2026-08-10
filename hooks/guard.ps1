@@ -51,10 +51,18 @@ try {
         }
     }
 
-    # CHECK 2: Bash command with a backslash drive-path inside double quotes.
-    if ($tool -eq 'Bash' -and ([string]$ti.command) -match '"[A-Za-z]:\\') {
-        [Console]::Error.WriteLine("BLOCKED by guard hook: backslash Windows path in a Bash double-quoted string. MSYS bash eats the backslashes. Use forward slashes (C:/Users/...) or /c/Users/... form.")
-        exit 2
+    # CHECK 2: Bash command with a backslash drive-path outside single quotes.
+    # Single-quoted 'C:\...' is safe in bash (backslashes stay literal); double-quoted
+    # AND unquoted drive-paths both get mangled by MSYS. Strip single-quoted spans
+    # first, then match anywhere in what remains. (The original quote-only pattern let
+    # unquoted paths slip through -- confirmed in live transcripts before widening.)
+    if ($tool -eq 'Bash') {
+        $bashCmd = [string]$ti.command
+        $outsideSq = $bashCmd -replace "'[^']*'", ' '
+        if ($outsideSq -match '[A-Za-z]:\\') {
+            [Console]::Error.WriteLine("BLOCKED by guard hook: backslash Windows path in a Bash command (outside single quotes). MSYS bash eats the backslashes. Use forward slashes (C:/Users/...), /c/Users/... form, or wrap the literal in single quotes.")
+            exit 2
+        }
     }
 
     exit 0
