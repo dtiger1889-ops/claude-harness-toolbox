@@ -60,8 +60,8 @@ try {
         $bashCmd = [string]$ti.command
         $outsideSq = $bashCmd -replace "'[^']*'", ' '
         # Path-start char required after the backslash: real drive paths look like
-        # C:\Users; grep alternation like "note:\|reply:" must NOT match (false
-        # positive caught live the first session after widening).
+        # C:\Users\x, while grep alternation like "note:\|reply:" must NOT match
+        # (false positive caught live the first session after widening).
         if ($outsideSq -match '[A-Za-z]:\\[A-Za-z0-9_.]') {
             [Console]::Error.WriteLine("BLOCKED by guard hook: backslash Windows path in a Bash command (outside single quotes). MSYS bash eats the backslashes. Use forward slashes (C:/Users/...), /c/Users/... form, or wrap the literal in single quotes.")
             exit 2
