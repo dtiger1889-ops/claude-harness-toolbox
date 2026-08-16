@@ -66,19 +66,15 @@ Then, optionally:
 
 The design choices are measured, not vibes:
 
-- **154 paired Claude Code trials** (paired Wilcoxon, p < 0.05) established the regime
-  boundary: the harness *hurts* on trivial/pre-oriented prompts (+35% to +136% output
+- **154 paired Claude Code trials** (paired Wilcoxon, p < 0.05) mapped the regime
+  boundary: the harness *hurts* on trivial or pre-oriented prompts (+35% to +136% output
   tokens, +64% to +80% cache reads), is neutral on structured single-project tasks, and
-  *wins big* on exploratory multi-project work (−25% to −45% on read-side metrics). The full experiment is
-  published as a separate repo —
-  [**harness-benchmark-report**](https://github.com/dtiger1889-ops/harness-benchmark-report):
-  the [report](https://github.com/dtiger1889-ops/harness-benchmark-report/blob/main/REPORT.md)
-  with per-task results and limitations, the
-  [raw per-trial CSV](https://github.com/dtiger1889-ops/harness-benchmark-report/blob/main/results.csv),
-  and the benchmark itself (runner, frozen prompts, verifiers, harness templates)
-  with [step-by-step instructions to re-run it](https://github.com/dtiger1889-ops/harness-benchmark-report/blob/main/REPRODUCE.md)
-  or to test your own harness variant against the same baselines. The practical
-  rules that fall out of the results are in `harness_me.txt` Section 2.5.
+  wins clearly on exploratory multi-project work (−25% to −45% on read-side metrics).
+  The whole experiment is published at
+  [**harness-benchmark-report**](https://github.com/dtiger1889-ops/harness-benchmark-report)
+  — the report, the raw per-trial data, and the benchmark itself, so you can check any
+  number here or run a harness variant of your own against the same baselines. What the
+  results mean in day-to-day practice is `harness_me.txt` Section 2.5.
 - **A 50-session audit** found the model self-classifies "am I already oriented?"
   unreliably (~1 in 5 actionable sessions acted before reading state). That killed the
   original prose rule and produced the orientation gate: read-only work is free
@@ -90,14 +86,13 @@ The design choices are measured, not vibes:
   and the method (crawl your own transcripts before building anything) is documented in
   Section 8c so you can ground your own suite the same way.
 
-Two honest caveats, also measured: the harness saves tokens, not necessarily wall-clock
-(up to +14% duration on exploratory tasks even while saving 25–45% of output), and it does
-nothing for peak context pressure. Don't oversell it.
-
-Every number above is checkable — the per-trial raw data, the runner, and the frozen
-prompts are all published in the
-[benchmark repo](https://github.com/dtiger1889-ops/harness-benchmark-report), and you can
-re-run the whole experiment or test your own harness variant against the same baselines.
+Two limits fell out of the same measurements, and they're worth knowing before you
+install rather than after. The harness buys tokens, not time — exploratory tasks ran up to
+14% *slower* even while spending 25–45% fewer output tokens, because reading `CLAUDE.md`
+costs latency up front to save work later. And it does nothing for context-window
+pressure: no trial ever came close to filling a window, so there is no evidence here that
+a harness delays compaction. If what you want is a session that *feels* faster, or relief
+from hitting the context limit, this is the wrong tool for it.
 
 ## Design principles (the short version)
 
