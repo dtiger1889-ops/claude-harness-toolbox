@@ -275,7 +275,7 @@ problem 1.
 
 | Task shape | Effect | Why |
 |---|---|---|
-| Trivial or pre-oriented prompt (the prompt names the file/path) | **Harness HURTS** (+56% to +75% turns) | Claude runs the startup ritual, finds no useful state, adds turns. |
+| Trivial or pre-oriented prompt (the prompt names the file/path) | **Harness HURTS** (+35% to +136% output tokens, +64% to +80% cache reads) | Claude runs the startup ritual, finds no useful state, and burns tokens narrating it. |
 | Structured single-project tasks | Neutral | Orientation cost ≈ orientation benefit. |
 | Exploratory multi-project tasks (Claude must pick which folders matter) | **Harness WINS BIG** (−25% to −45% on read-side metrics) | Per-project CLAUDE.md lets Claude classify folders without reading them. Compounds into less exploratory chatter. |
 
@@ -290,11 +290,11 @@ problem 1.
    maintainer originally shipped a self-judged "skip the ritual if pre-oriented" rule, and
    a 50-session audit found the model applied it unreliably (it acted before reading
    CHECKPOINT in roughly 1 of 5 actionable sessions), so the rule was replaced by the gate.
-   The +56%–+75% turn-tax finding is what motivates keeping read-only free; the gate is how
-   you capture that saving without trusting self-classification.
-2. **Hierarchy isn't ceremony.** Per-project CLAUDE.md added another ~8% turn savings and
-   ~22% output savings on top of a top-level-only harness for exploratory tasks. Keep
-   per-project CLAUDE.md files even when they feel small.
+   The pre-oriented token-tax finding is what motivates keeping read-only free; the gate is
+   how you capture that saving without trusting self-classification.
+2. **Hierarchy isn't ceremony.** Per-project CLAUDE.md added another ~22% output savings,
+   ~8% cache-read savings and ~20% fewer logical turns on top of a top-level-only harness
+   for exploratory tasks. Keep per-project CLAUDE.md files even when they feel small.
 3. **Stale CLAUDE.md is the actual production risk.** The benchmark used a frozen,
    accurate harness. In real use, the danger is drift — a CLAUDE.md that no longer
    matches reality. Defend against it with the `Last updated:` line in each per-project
@@ -302,7 +302,7 @@ problem 1.
    session reads CHECKPOINT and confirms the claims still hold (see the templates in
    Section 3).
 4. **Don't pitch this as "always faster."** Wall-clock didn't track tokens — exploratory
-   tasks saved 25–45% on output but cost +14% on duration (Claude reads CLAUDE.md, which
+   tasks saved 25–45% on output but cost up to +14% on duration (Claude reads CLAUDE.md, which
    adds latency even when it saves downstream work). Tokens cost money; wall-clock costs
    patience. Two different axes.
 5. **The harness doesn't relieve context-window pressure.** Peak context was unaffected
@@ -313,6 +313,17 @@ problem 1.
 **The clearest regime where this harness earns its keep:** multi-project personal work
 where the question is "which of these projects does the user mean?" That's exactly the
 shape this layout — projects as siblings under a single ledger — was designed for.
+
+**Check the numbers yourself.** The full experiment is published separately at
+https://github.com/dtiger1889-ops/harness-benchmark-report — the report with per-task
+results, statistics and limitations; the raw per-trial CSV (154 rows); and the benchmark
+itself (runner, the eight frozen prompts, verifiers, both harness templates, seed data,
+analyzer) with instructions to re-run it end to end or to test a harness variant of your
+own against the same H0/H1 baselines. Two caveats worth carrying over before you trust
+any of the above: turn counts must be read off the `turn_logical` metric (the raw SDK
+turn count counts content blocks, not decisions, and inflated the original write-up), and
+peak context was never stressed in any trial — nothing here supports the claim that a
+harness relieves context-window pressure.
 
 ---
 
@@ -397,7 +408,7 @@ This file is the project ledger and the shared rulebook all projects inherit.
    honestly judged this a pre-oriented one-shot that doesn't depend on project state ("fix
    this typo in X.md"), just re-issue the blocked call to proceed; the gate fires only once
    per session. (Why a gate instead of a self-judged "skip the ritual" rule: pre-oriented
-   prompts cost +56% to +75% turn tax, so skipping when truly oriented matters — but a
+   prompts cost a large token tax, so skipping when truly oriented matters — but a
    50-session audit found the model classifies "am I oriented?" unreliably and errs toward
    just acting. The gate makes read-only free and the action boundary mechanical.)
 1. The SessionStart hook prints a CHECKPOINT *receipt* (file present + byte/line count),
@@ -1551,7 +1562,7 @@ not the prompt" mindset.
   (Section 8c). The maintainer's scan inverted his expected priorities.
 - A PreToolUse **orientation gate** that makes read-only work untaxed automatically and
   structurally enforces "read CHECKPOINT before acting" (block-once, fail-open), backed by
-  benchmark data: the harness adds +56% to +75% turn tax on prompts that don't need
+  benchmark data: the harness adds +35% to +136% output tokens on prompts that don't need
   orientation, AND a 50-session audit found the model self-classifies "am I oriented?"
   unreliably — so the boundary is enforced by a hook, not left to the model's judgment.
   Structural orientation enforcement is genuinely uncommon in published harnesses.

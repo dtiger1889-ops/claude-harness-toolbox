@@ -67,10 +67,18 @@ Then, optionally:
 The design choices are measured, not vibes:
 
 - **154 paired Claude Code trials** (paired Wilcoxon, p < 0.05) established the regime
-  boundary: the harness *hurts* on trivial/pre-oriented prompts (+56% to +75% turns),
-  is neutral on structured single-project tasks, and *wins big* on exploratory
-  multi-project work (−25% to −45% on read-side metrics). Full findings and the practical
-  rules that fall out of them are in `harness_me.txt` Section 2.5.
+  boundary: the harness *hurts* on trivial/pre-oriented prompts (+35% to +136% output
+  tokens, +64% to +80% cache reads), is neutral on structured single-project tasks, and
+  *wins big* on exploratory multi-project work (−25% to −45% on read-side metrics). The full experiment is
+  published as a separate repo —
+  [**harness-benchmark-report**](https://github.com/dtiger1889-ops/harness-benchmark-report):
+  the [report](https://github.com/dtiger1889-ops/harness-benchmark-report/blob/main/REPORT.md)
+  with per-task results and limitations, the
+  [raw per-trial CSV](https://github.com/dtiger1889-ops/harness-benchmark-report/blob/main/results.csv),
+  and the benchmark itself (runner, frozen prompts, verifiers, harness templates)
+  with [step-by-step instructions to re-run it](https://github.com/dtiger1889-ops/harness-benchmark-report/blob/main/REPRODUCE.md)
+  or to test your own harness variant against the same baselines. The practical
+  rules that fall out of the results are in `harness_me.txt` Section 2.5.
 - **A 50-session audit** found the model self-classifies "am I already oriented?"
   unreliably (~1 in 5 actionable sessions acted before reading state). That killed the
   original prose rule and produced the orientation gate: read-only work is free
@@ -83,8 +91,13 @@ The design choices are measured, not vibes:
   Section 8c so you can ground your own suite the same way.
 
 Two honest caveats, also measured: the harness saves tokens, not necessarily wall-clock
-(+14% duration on exploratory tasks even while saving 25–45% of output), and it does
+(up to +14% duration on exploratory tasks even while saving 25–45% of output), and it does
 nothing for peak context pressure. Don't oversell it.
+
+Every number above is checkable — the per-trial raw data, the runner, and the frozen
+prompts are all published in the
+[benchmark repo](https://github.com/dtiger1889-ops/harness-benchmark-report), and you can
+re-run the whole experiment or test your own harness variant against the same baselines.
 
 ## Design principles (the short version)
 
