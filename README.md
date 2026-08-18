@@ -48,6 +48,9 @@ Then, optionally:
 | `docs/configuration-guide.md` | The optional configuration tour: permission and settings scope, hooks, skills, MCP, memory choice, compaction, and context-budget checks. Cosmetic settings and model rankings are deliberately excluded. |
 | `docs/maintaining-the-harness.md` | The human maintenance procedure that was deliberately removed from the installer: file budgets, the two-pass rulebook diet, contradiction checks, and outside-audit workflow. |
 | `docs/design-history.md` | A dated record of the public patterns reviewed, what this toolbox adopted or declined, and the choices it added. It is design history, not a current market survey. |
+| `docs/when-it-pays-off.md` | The measured regime boundary in practical form: the three task-shape regimes, five rules of thumb that fall out of them, and the clearest winning regime. Read before installing if you're unsure the harness fits your work. |
+| `docs/token-efficiency.md` | Operating habits that keep sessions cheap: model-tier principles (deliberately no model names), the sub-agent cost gate, and file/reading habits like front-loading resume-critical sections. |
+| `docs/optional-add-ons.md` | Concept sketches beyond the default install: a capture-first rants/musings folder and a Cowork sibling workspace layout. |
 | `skills/checkpoint/` | `/checkpoint` — rewrites CHECKPOINT.md in place to the schema, enforces the 120-line/~30KB caps, and archives overflow via `archive-changelog.ps1`, a byte-faithful mover script (the model picks which lines to evict; the script moves bytes the model never retypes). |
 | `skills/prevent/` | `/prevent` — when a documented rule got violated because it wasn't in Claude's read path: fix the slip, find the knowledge, diagnose why it missed, and move it to where the failing workflow will actually read it. If you build only one skill, build this one. |
 | `skills/prove/` | `/prove` — extracts every factual claim from the last response and verifies each against files first, then the web; per-claim Confirmed / Wrong / Unverified with citations. |
@@ -120,6 +123,9 @@ The setup choices are explained in [`docs/configuration-guide.md`](docs/configur
 the operational version of principle 7 is in
 [`docs/maintaining-the-harness.md`](docs/maintaining-the-harness.md), and the dated comparison
 that informed the toolbox is preserved in [`docs/design-history.md`](docs/design-history.md).
+The practical reading of the benchmark numbers above is
+[`docs/when-it-pays-off.md`](docs/when-it-pays-off.md); day-to-day operating habits are
+[`docs/token-efficiency.md`](docs/token-efficiency.md).
 
 ## Platform note
 

@@ -84,6 +84,19 @@ approaches either toolbox cap:
 
 The checkpoint skill and archive helper in this repository encode that procedure.
 
+## Ground new skills in your own transcripts
+
+Claude Code keeps full session transcripts under `~/.claude/projects/`. Before building
+a skill suite, have Claude crawl your real sessions for friction phrases and bucket them
+by candidate tool — then build only for friction that proves out. The maintainer's
+631-session crawl inverted the expected priorities: the anticipated friction ("I'm
+overwhelmed, simplify") came back near-empty, while the dominant, repeated friction was
+laziness/punting — stopping at "can't determine" with the data in reach, or narrating
+capability instead of acting. One planned tool was demoted and another survived only as
+a terser reframe of itself. Pair this with the promote-failing-rules principle: a rule
+you have re-written three times and still watched fail is the textbook case for a skill
+or a hook.
+
 ## Outside-audit the rulebook
 
 Use a fresh agent context periodically. A different model or vendor can help, but the
