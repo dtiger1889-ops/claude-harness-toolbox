@@ -106,6 +106,13 @@ from hitting the context limit, this is the wrong tool for it.
 5. **Promote failing rules into tools.** A rule you've re-written three times and still
    violated is the textbook case for a skill or a hook.
 6. **Build for friction you can prove.** Crawl your own transcripts first.
+7. **Right layer beats more prose.** A fix goes in the narrowest layer guaranteed to be
+   read or fired at the failure point: a hook for tool-event patterns, a skill for
+   procedures, an on-demand index for lookup data (project ledgers, routing tables).
+   The always-loaded file is only for rules every session needs — and it has a real
+   budget: Claude Code warns at ~40k characters, and everything under that ceiling
+   taxes every turn. `harness_me.txt` Section 2 has the two-pass diet; Section 8f has
+   the outside-audit method that keeps a mature rulebook honest.
 
 ## Platform note
 
