@@ -86,12 +86,15 @@ The design choices are measured, not vibes:
   unreliably (~1 in 5 actionable sessions acted before reading state). That killed the
   original prose rule and produced the orientation gate: read-only work is free
   automatically, and the action boundary is enforced by a hook instead of judgment.
-- **A 631-session transcript crawl** grounded the skill suite. The obvious guess was that
-  the most common complaint would be "this is too complicated, simplify it." It barely came
-  up. What came up constantly was the model being lazy: answering "can't determine" when the
-  data to decide was already in reach, or describing what it could do instead of doing it.
-  That is what the skills go after. Crawl your own transcripts before you copy this list;
-  the problem you keep hitting may not be the one you'd guess.
+- **A 631-session transcript crawl** chose the skill list. Claude Code keeps a transcript
+  of every session on disk, so before building any skills, a script searched 631 of the
+  maintainer's real sessions for every place the model got told it was doing something
+  wrong. The guess going in was that the most common complaint would be "this is too
+  complicated, simplify it." That complaint barely appears in the record. The one that
+  appears constantly is laziness: the model answering "can't determine" when the data to
+  decide was already loaded, or describing what it could do instead of doing it. Those are
+  the failures the skills above go after. Crawl your own transcripts before you copy the
+  list; the problem you keep hitting may not be the one you'd guess.
 
 Two limits fell out of the same measurements, and they're worth knowing before you
 install rather than after. The harness buys tokens, not time. Exploratory tasks ran up to
