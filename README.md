@@ -22,9 +22,11 @@ Sonnet or Opus, and paste:
 
 Claude will ask for your permission to fetch and read this page before it tries to
 download anything. When you're ready to install, [`harness_me.txt`](harness_me.txt) is the
-guide Claude follows — it walks the whole setup at your chosen pace (three modes, from
-"just do it" to careful incremental migration) and is fully human-readable, with the
-design decisions explained in plain English.
+machine-oriented installer Claude follows. It collects the workspace, OS, pace, and
+selected components once; then it executes an explicit preflight → install → verify →
+rollback-record contract. Design rationale stays here in the README and in the benchmark,
+with configuration, maintenance, and historical guidance under [`docs/`](docs/), so an
+installing session does not pay to parse them.
 
 Then, optionally:
 
@@ -42,7 +44,10 @@ Then, optionally:
 
 | Path | What it is |
 |---|---|
-| `harness_me.txt` | The complete setup guide — hand it to Claude on a fresh machine and the whole harness gets stood up. Also the design document: every pattern's rationale, failure history, and a comparison to other published harness approaches (Section 9). |
+| `harness_me.txt` | The machine-oriented setup contract — hand it to Claude on a fresh machine to preflight, install, verify, and record rollback. It uses the repository files when available and carries exact fallback templates/hook blocks for single-file installs. |
+| `docs/configuration-guide.md` | The optional configuration tour: permission and settings scope, hooks, skills, MCP, memory choice, compaction, and context-budget checks. Cosmetic settings and model rankings are deliberately excluded. |
+| `docs/maintaining-the-harness.md` | The human maintenance procedure that was deliberately removed from the installer: file budgets, the two-pass rulebook diet, contradiction checks, and outside-audit workflow. |
+| `docs/design-history.md` | A dated record of the public patterns reviewed, what this toolbox adopted or declined, and the choices it added. It is design history, not a current market survey. |
 | `skills/checkpoint/` | `/checkpoint` — rewrites CHECKPOINT.md in place to the schema, enforces the 120-line/~30KB caps, and archives overflow via `archive-changelog.ps1`, a byte-faithful mover script (the model picks which lines to evict; the script moves bytes the model never retypes). |
 | `skills/prevent/` | `/prevent` — when a documented rule got violated because it wasn't in Claude's read path: fix the slip, find the knowledge, diagnose why it missed, and move it to where the failing workflow will actually read it. If you build only one skill, build this one. |
 | `skills/prove/` | `/prove` — extracts every factual claim from the last response and verifies each against files first, then the web; per-claim Confirmed / Wrong / Unverified with citations. |
@@ -73,8 +78,7 @@ The design choices are measured, not vibes:
   The whole experiment is published at
   [**harness-benchmark-report**](https://github.com/dtiger1889-ops/harness-benchmark-report)
   — the report, the raw per-trial data, and the benchmark itself, so you can check any
-  number here or run a harness variant of your own against the same baselines. What the
-  results mean in day-to-day practice is `harness_me.txt` Section 2.5.
+  number here or run a harness variant of your own against the same baselines.
 - **A 50-session audit** found the model self-classifies "am I already oriented?"
   unreliably (~1 in 5 actionable sessions acted before reading state). That killed the
   original prose rule and produced the orientation gate: read-only work is free
@@ -82,9 +86,8 @@ The design choices are measured, not vibes:
 - **A 631-session transcript crawl** grounded the skill suite. The expected friction
   ("I'm overwhelmed, simplify") came back near-empty; the dominant, repeated friction was
   laziness/punting — stopping at "can't determine" with the data in reach, or narrating
-  capability instead of acting. The suite is built for the friction that was provable,
-  and the method (crawl your own transcripts before building anything) is documented in
-  Section 8c so you can ground your own suite the same way.
+  capability instead of acting. The suite is built for the friction that was provable;
+  crawl your own transcripts before inventing a tool list for your setup.
 
 Two limits fell out of the same measurements, and they're worth knowing before you
 install rather than after. The harness buys tokens, not time — exploratory tasks ran up to
@@ -111,8 +114,12 @@ from hitting the context limit, this is the wrong tool for it.
    procedures, an on-demand index for lookup data (project ledgers, routing tables).
    The always-loaded file is only for rules every session needs — and it has a real
    budget: Claude Code warns at ~40k characters, and everything under that ceiling
-   taxes every turn. `harness_me.txt` Section 2 has the two-pass diet; Section 8f has
-   the outside-audit method that keeps a mature rulebook honest.
+   taxes every turn.
+
+The setup choices are explained in [`docs/configuration-guide.md`](docs/configuration-guide.md),
+the operational version of principle 7 is in
+[`docs/maintaining-the-harness.md`](docs/maintaining-the-harness.md), and the dated comparison
+that informed the toolbox is preserved in [`docs/design-history.md`](docs/design-history.md).
 
 ## Platform note
 
