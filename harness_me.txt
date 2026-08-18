@@ -200,49 +200,34 @@ response. If a project's CLAUDE.md grows past 30 lines, move the surplus into a
 project-scoped artifact (e.g., `<project>/INVENTORY.md`) and reference it. The 30-line
 cap is empirical, not arbitrary — see "When the harness pays off" below.
 
-The workspace-root `CLAUDE.md` starts with a dual role: it's both the workspace
-overview AND the project ledger (the table of which projects exist, what each is for).
-Combined is right while the ledger is small — a redirection layer doesn't earn its keep
-at five projects. It stops being right at scale: the ledger is lookup *data*, not
-every-session rules, so once the root file nears its size budget the ledger is the
-first thing to extract to an on-demand `PROJECTS.md` (one pointer line stays behind;
-re-point whatever registers new projects). The maintainer has run both shapes: split
-early (premature), combined for months (correct), re-split at ~24 projects when the
-ledger plus routing tables had grown to ~17% of an over-budget file.
+The workspace-root `CLAUDE.md` starts dual-role: workspace overview AND project ledger
+(which projects exist, what each is for). Combined is right while the ledger is small.
+At scale the ledger is lookup *data*, not every-session rules — when the root file
+nears its size budget, extract the ledger first to an on-demand `PROJECTS.md`, leave
+one pointer line, and re-point whatever registers new projects. (Measured tipping
+point: ~24 projects, ledger + routing ≈ 17% of an over-budget file.)
 
-One more budget on the root file: **Claude Code warns when a memory file gets large —
-treat the warning as a hard budget.** The current implementation computes the threshold
-as roughly 5% of the active model's context window in characters, with 40,000
-characters as the floor (the number most sessions will see). The file loads into every
-session's context, so an oversized rulebook taxes every turn. What pushes a mature
-rulebook over is rarely the rules; it's the incident stories that justify them ("why
-this rule exists") accreting inline. The diet is two passes, in order:
+One more budget: **Claude Code warns when a memory file exceeds max(40,000 chars,
+~5% of the model's context window) — treat the warning as a hard budget.** The file
+taxes every turn; what overflows a mature rulebook is incident stories accreting
+inline. Two passes, in order:
 
-- **Pass 1 — compress in place.** Archive the full long-form text verbatim first
-  (e.g. `archive/CLAUDE_vNN_full.md`), then compress each rule to
-  trigger → directive → pointer: the rationale becomes its date plus a pointer at the
-  detail doc. Every rule survives; the war-stories live one hop away instead of in the
-  every-session read path. (The maintainer's root file hit 55k characters before Claude
-  Code flagged it; this pass cut 28% of the bytes without dropping a single rule.)
-- **Pass 2 — extract by layer**, when compression alone stops being enough. Move whole
-  blocks to the layer that actually loads or fires at the right moment: the project
-  ledger and routing tables to the on-demand index above; multi-step procedures to the
-  skill that owns them, leaving only the triggers, the hard invariants, and a pointer
-  (a procedure living in BOTH the rulebook and a skill drifts into two authorities —
-  the audit pattern in Section 8f catches this); rules that fire at one recognizable
-  tool event to a hook, deleting the prose the hook replaced. Keep a one-line statement
-  of a hook-enforced rule only where knowing it in advance saves a blocked-call-and-
-  retry cycle. (The maintainer's pass 2 took the same file from 239 lines / 40.6k
-  characters to 146 lines / 22.3k, roughly halving what `/context` reports for memory
-  files — with no rule lost, because every cut block moved to a layer that loads on
-  demand or fires mechanically.)
+- **Pass 1 — compress in place.** Archive the long-form text verbatim
+  (`archive/CLAUDE_vNN_full.md`), then reduce each rule to trigger → directive →
+  pointer; rationale becomes a date + pointer. (Measured: −28% bytes, zero rules lost.)
+- **Pass 2 — extract by layer**, when compression stops being enough: ledger/routing →
+  the on-demand index above; multi-step procedures → the skill that owns them, keeping
+  only triggers + hard invariants + a pointer (a procedure in two homes drifts into two
+  authorities — Section 8f's audit catches this); rules firing at one recognizable tool
+  event → a hook, deleting the prose it replaces. Keep a one-line copy of a
+  hook-enforced rule only where advance knowledge saves a blocked-call retry.
+  (Measured: 239 lines / 40.6k chars → 146 / 22.3k; `/context` memory footprint
+  roughly halved; no rule lost.)
 
-While you're in there, sweep for **contradictory imperatives**. They accumulate
-silently as a rulebook matures, and each pair is a coin-flip at execution time: the
-maintainer's file had grown both "don't commit or push anything" (in a file-hygiene
-block) and "for an existing private backup repo, commit means commit+push immediately"
-(in the git block), and resident sessions had read past the conflict for months. The
-fix is one precedence rule, never two competing absolutes.
+Also sweep for **contradictory imperatives** — they accrete silently and each pair is
+a coin-flip at execution time (one real rulebook carried both "don't commit or push
+anything" and "commit means commit+push immediately" for months). The fix is one
+precedence rule, never two competing absolutes.
 
 **CHECKPOINT.md** — A compressed state file that captures where a project stands right
 now: status, open threads, next step, key decisions. It is *overwritten in place* each
@@ -1528,36 +1513,26 @@ they'd be pure overhead on a notes folder.
 
 ### 8f — Outside-Audit Your Rulebook
 
-Once the rulebook is mature (dozens of rules, months of accretion), have a *different*
-agent audit it — a separate model or vendor with no session history in your workspace,
-prompted as a knowledgeable outsider: check the always-loaded file against the live
-hooks, the installed skills, and the platform's current documentation, and report
-findings by priority. Fresh eyes matter structurally here: the resident model wrote the
-file, so it inherits the file's blind spots and reads past its contradictions.
+When the rulebook is mature, have a *different* agent — separate model or vendor, no
+session history in your workspace — audit the always-loaded file against the live
+hooks, installed skills, and current platform docs, reporting by priority. The
+resident model wrote the file, so it reads past the file's own blind spots and
+contradictions. Typical catches: wrong-layer duplication (a procedure in both the
+rulebook and its skill), contradictory imperatives, prose duplicating hooks, stale
+facts.
 
-What an outside audit catches best (all four from the maintainer's first run — the one
-that produced Pass 2 in Section 2):
+Handle the report like any outside consultant's:
+1. **Corroborate first** — verify every factual claim against the live files (counts,
+   hook headers, skill contents) before acting.
+2. **Implement the high-confidence findings.**
+3. **Hold, with a written reason, anything where the auditor lacks context** — e.g. a
+   rule must stay in the root file when that file is the only artifact a given session
+   type ever loads; an outside auditor can't see load paths.
 
-- **Wrong-layer duplication** — a full procedure living in both the rulebook and the
-  skill that owns it, drifting into two competing authorities.
-- **Contradictory imperatives** — direct conflicts resident sessions had read past for
-  months (the commit/push example in Section 2).
-- **Prose duplicating hooks** — paragraphs restating what a hook already enforces
-  mechanically at the exact moment it matters.
-- **Stale facts** — e.g. a file still listed as repo-covered a month after it moved.
-
-Then treat the report the way you'd treat any outside consultant, in three steps.
-**Corroborate first:** verify every factual claim against the live files before acting
-(counts, hook headers, skill contents — cheap to check, and the audit's credibility
-rests on them). **Implement the high-confidence findings.** **Hold, with a written
-reason, anything where the auditor lacks context** — in the maintainer's run, two rules
-the audit wanted moved out as "session-type-specific" had to stay in the root file
-because it is the only artifact those session types ever load; the auditor couldn't
-see that load path. Keep the audit document as a working spec with a per-finding
-status table (DONE / HELD-with-rationale), so the next audit starts from recorded
-verdicts instead of relitigating them — and end with a fresh-session verification that
-the surviving file actually loads, warns about nothing, and behaves (Section 6
-checklist, plus `/context` to confirm the memory-file footprint dropped).
+Keep the audit as a working spec with a per-finding status table
+(DONE / HELD-with-rationale) so the next audit starts from recorded verdicts. Finish
+with a fresh-session check: no size warning, `/context` memory footprint dropped,
+Section 6 checklist passes.
 
 ---
 
