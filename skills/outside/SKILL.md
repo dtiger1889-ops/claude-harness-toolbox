@@ -1,6 +1,6 @@
 ---
 name: outside
-description: Force the session out of its own head before committing to an approach -- one cheap reconnaissance pass over shipped solutions, the user's other projects, and the user's notes. Use when the user types /outside or says "get an outside view" / "check prior art" / "are we reinventing the wheel" / "has anyone already built this" / "look around before we build this". Sits between a single-shot answer and /redteam in cost - one pass, no subagents, 1-3 web searches. Do NOT use for multi-frame ideation (that is /fanout), attacking a finished answer (that is /redteam), or pre-build requirements interviewing.
+description: Force the session out of its own head before committing to an approach -- one cheap reconnaissance pass over shipped solutions, the user's other projects, and the user's notes. Use when the user types /outside or says "get an outside view" / "check prior art" / "are we reinventing the wheel" / "has anyone already built this". One pass, no subagents, 1-3 web searches.
 ---
 
 # outside -- external grounding pass (prior art + workspace + notes)
@@ -63,3 +63,6 @@ milestone.
   alternatives to look useful.
 - This is reconnaissance, not a research milestone. If it uncovers a rabbit hole worth
   real research, put THAT in the report as the one next action -- don't dive inline.
+
+## Scope
+Not multi-frame ideation (that is /fanout), not attacking a finished answer (that is /redteam), not pre-build requirements interviewing.

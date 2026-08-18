@@ -1,14 +1,11 @@
 ---
 name: prevent
-description: You just did something documented knowledge says not to do -- a rule, prior
-  decision, or known gotcha existed in a file, but it wasn't in your read path, so you
-  repeated the mistake. Use when the user types /prevent or says "we've talked about this"
-  / "you should know this" / "this is documented" / "why do you keep doing this" about
-  your previous action. Fix the immediate mistake, find the documented knowledge that
-  should have stopped you, diagnose why it wasn't read, then MOVE or copy that knowledge
-  to where the failing workflow will actually read it next time (colocated CLAUDE.md,
-  hook/deny rule). The harness change is the deliverable, not the apology. Not /dumb
-  (fix only, no harness change) and not /prove (verify claims, not prevent repeats).
+description: You just did something documented knowledge says not to do -- the rule
+  existed in a file, but it wasn't in your read path. Use when the user types /prevent or
+  says "we've talked about this" / "you should know this" / "this is documented" /
+  "why do you keep doing this" about your previous action. Fix the mistake, find the
+  knowledge, move it into the failing workflow's read path (colocated CLAUDE.md,
+  hook/deny rule). The harness change is the deliverable.
 ---
 
 # prevent -- the mistake was preventable; make it impossible to repeat
@@ -84,3 +81,6 @@ behavior -- the file IS the promise.
   -- don't ask unless both placements would require restructuring.
 - If the same rule has now been violated twice from DIFFERENT entry points, that's the
   signal to escalate a rung (prose -> colocated doc -> hook/deny).
+
+## Scope
+Not /dumb (fix only, no harness change) and not /prove (verify claims, not prevent repeats).

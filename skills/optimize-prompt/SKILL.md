@@ -1,6 +1,6 @@
 ---
 name: optimize-prompt
-description: One deliberate rewrite pass that applies Anthropic's current prompt-engineering best practices to an existing draft prompt (SKILL.md, scheduled-task prompt, API/system prompt, one-off task prompt). Use when the user types /optimize-prompt or says "optimize this prompt" / "improve this prompt" / "tune this prompt" / "apply prompt best practices to X". Input is a pasted prompt, @-mentioned file, or a pointer to where the prompt lives. Outputs the rewritten prompt + a what-changed rationale to chat — NEVER auto-overwrites the source. "--check" diagnoses without rewriting. NOT a from-scratch prompt generator (that is a normal conversation) and NOT an eval/judge loop (those degrade past iteration 2-3).
+description: One deliberate rewrite pass applying Anthropic's current prompt-engineering best practices to an existing draft prompt (SKILL.md, scheduled-task, API/system, one-off). Use when the user types /optimize-prompt or says "optimize this prompt" / "improve this prompt" / "tune this prompt". "--check" diagnoses without rewriting. Outputs to chat -- NEVER auto-overwrites the source.
 ---
 
 # optimize-prompt -- one-pass prompt rewrite
@@ -73,3 +73,6 @@ Never overwrite the source; the user applies it.
 - No generic "helpful assistant" framing added to task prompts (measured net-negative).
 - No multi-candidate tournaments / token-burning fan-out.
 - No blank-page generation from a vague wish — require a draft or a concrete task description.
+
+## Scope
+Not a from-scratch prompt generator (that is a normal conversation) and not an eval/judge loop (those degrade past iteration 2-3).

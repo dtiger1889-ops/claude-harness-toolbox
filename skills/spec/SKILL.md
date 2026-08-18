@@ -1,16 +1,10 @@
 ---
 name: spec
-description: Efficiently produce a spec into the current project AND drive its
-  archive/promote closeout so it never just rots in place. Use when the user types /spec
-  or says "spec this" / "write a spec for X" / "make a spec" / "close out this spec" /
-  "archive this spec" / "promote this spec". Two modes - WRITE a new spec (lean for a
-  mechanical change, full-reasoning for a decision reached through investigation), or
-  CLOSE an existing one (archive to decisions/ OR promote into the deployed artifact).
-  Every spec this skill writes ends with a mandatory Closeout section, and finishing a
-  spec's work ALWAYS ends by firing that closeout - that step keeps getting dropped,
-  which is the whole reason this tool exists. Terse, action-first, no capability
-  narration. Not /breakdown (that is decomposition) and not /checkpoint (that is
-  resume state).
+description: Produce a spec into the current project AND drive its archive/promote
+  closeout so it never rots in place. Use when the user types /spec or says "spec this" /
+  "write a spec for X" / "make a spec" / "close out this spec" / "archive this spec" /
+  "promote this spec". Two modes - WRITE a new spec, or CLOSE an existing one (archive
+  OR promote). Terse, action-first.
 ---
 A spec is a file that drives a decision or a change, then gets ARCHIVED or PROMOTED.
 The failure this tool kills: specs get written and then left sitting forever. So the
@@ -133,3 +127,6 @@ spec is finished, even if they didn't say "close it." A done spec is never left 
 - If a project/workspace CLAUDE.md names a different spec folder convention, it wins.
 - If the ask is too big for one spec, spec PHASE 1 only and fence the later phases under
   Non-goals (with the why) or Open questions - do not write one sprawling spec.
+
+## Scope
+Not /breakdown (that is decomposition) and not /checkpoint (that is resume state).
