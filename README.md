@@ -86,11 +86,13 @@ The design choices are measured, not vibes:
   unreliably (~1 in 5 actionable sessions acted before reading state). That killed the
   original prose rule and produced the orientation gate: read-only work is free
   automatically, and the action boundary is enforced by a hook instead of judgment.
-- **A 631-session transcript crawl** grounded the skill suite. The expected friction,
-  "I'm overwhelmed, simplify," barely showed up. What kept showing up was laziness: the
-  model stopping at "can't determine" with the data one step away, or describing what it
-  could do instead of doing it. The skills target the problem the transcripts actually
-  proved. Crawl your own before you copy this tool list.
+- **A 631-session transcript crawl** grounded the skill suite. The obvious guess was that
+  the most common complaint in those sessions would be overwhelm: too much complexity, a
+  need to cut scope and simplify. It barely came up. What came up constantly was the model
+  being lazy: answering "can't determine" when the data to decide was already in reach, or
+  describing what it could do instead of doing it. That is what the skills go after. Crawl
+  your own transcripts before you copy this list; the problem you keep hitting may not be
+  the one you'd guess.
 
 Two limits fell out of the same measurements, and they're worth knowing before you
 install rather than after. The harness buys tokens, not time. Exploratory tasks ran up to
