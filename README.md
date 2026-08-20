@@ -37,8 +37,7 @@ Then, optionally:
   `~/.claude/settings.json`. (User-level is load-bearing: workspace-level hooks silently
   never fire for sessions opened inside project subfolders.)
 - **Templates**: [`templates/`](templates/) holds the skeletons for bootstrapping new
-  projects (`CLAUDE.md`, `CHECKPOINT.md`, an opt-in coding-discipline layer, a baseline
-  `.gitignore`).
+  projects (`CLAUDE.md`, `CHECKPOINT.md`, and a baseline `.gitignore`).
 
 ## What's inside
 
@@ -68,7 +67,7 @@ Then, optionally:
 | `hooks/deny_backstop.ps1` | PreToolUse **security backstop**: scans the complete Bash/PowerShell command, including command substitution and loop bodies, and blocks a narrow set of catastrophic operations. It includes broad name/pattern/pipeline process kills, requiring an explicit PID instead. Review and adapt its patterns before enabling it. |
 | `hooks/tmux_receipt.ps1` | SessionStart **environment receipt** (optional): detects a tmux/SSH-launched session (stripped PATH, different world than the desktop) and tells the session so, once, at start, so it stops re-deriving "tool not installed" conclusions from bare-name failures. Silent no-op on desktop launches; adapt detection + message to your own remote launch path. |
 | `hooks/settings-*.example.json` | The SessionStart receipt + PreCompact reminder + PreToolUse hooks, wired for Windows and Mac/Linux. The Windows example also wires the optional security backstop. |
-| `templates/` | Per-project `CLAUDE.md` / `CHECKPOINT.md` skeletons, an opt-in `CODING_CRAFT.md` layer for code-bearing projects, and a baseline `.gitignore`. |
+| `templates/` | Per-project `CLAUDE.md` / `CHECKPOINT.md` skeletons and a baseline `.gitignore`. |
 
 ## Why trust any of this
 
