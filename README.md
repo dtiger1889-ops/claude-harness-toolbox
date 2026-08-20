@@ -78,7 +78,9 @@ The design choices are measured, not vibes:
   boundary: the harness *hurts* on trivial or pre-oriented prompts (+35% to +136% output
   tokens, +64% to +80% cache reads), is neutral on structured single-project tasks, and
   wins clearly on exploratory multi-project work (−25% to −45% on read-side metrics).
-  The whole experiment is published at
+  Every trial ran on a single pinned model, `claude-sonnet-4-6` (run in early-to-mid
+  2026, predating the Claude 5 family) — these numbers describe that model's behavior,
+  not a claim about any other model. The whole experiment is published at
   [**harness-benchmark-report**](https://github.com/dtiger1889-ops/harness-benchmark-report):
   the report, the raw per-trial data, and the benchmark itself, so you can check any
   number here or run a harness variant of your own against the same baselines.
