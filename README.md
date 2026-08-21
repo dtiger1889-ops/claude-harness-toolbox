@@ -1,10 +1,11 @@
 # Claude Code Harness Toolbox
 
-A tested, empirically-grounded "harness" for [Claude Code](https://claude.com/claude-code):
-a small set of files, hooks, and custom skills that give Claude durable memory across
-sessions, structural orientation discipline, and on-demand self-correction tools.
+A tested, empirically grounded harness for durable work across coding agents, with
+[Claude Code](https://claude.com/claude-code) as the reference implementation. Its
+file-based state and checkpoint patterns work with Codex and other file-capable agents
+too; its hooks and settings remain Claude-specific.
 
-**The core problem:** Claude's context window is finite and resets between sessions.
+**The core problem:** coding agents have finite, session-bound context.
 Without a harness, every session starts from scratch, re-reading the same files, with no
 reliable way to know what was done, what's open, or where to pick up. This toolbox is the
 storage layer: `CLAUDE.md` for stable facts, `CHECKPOINT.md` for compressed mutable state,
