@@ -41,32 +41,52 @@ Then, optionally:
 
 ## What's inside
 
-| Path | What it is |
+`harness_me.txt` — the machine-oriented installer described in Quick start above.
+
+### Skills (`skills/<name>/`)
+
+Copy any folder into `~/.claude/skills/<name>/`. Each becomes a `/slash` command in every project.
+
+| Skill | What it is |
 |---|---|
-| `harness_me.txt` | The machine-oriented setup contract. Hand it to Claude on a fresh machine to preflight, install, verify, and record rollback. It uses the repository files when available and carries exact fallback templates/hook blocks for single-file installs. |
-| `docs/configuration-guide.md` | The optional configuration tour: permission and settings scope, hooks, skills, MCP, memory choice, compaction, and context-budget checks. Cosmetic settings and model rankings are deliberately excluded. |
-| `docs/maintaining-the-harness.md` | The human maintenance procedure that was deliberately removed from the installer: file budgets, the two-pass rulebook diet, contradiction checks, and outside-audit workflow. |
-| `docs/design-history.md` | A dated record of the public patterns reviewed, what this toolbox adopted or declined, and the choices it added. It is design history, not a current market survey. |
-| `docs/when-it-pays-off.md` | The measured regime boundary in practical form: the three task-shape regimes, five rules of thumb that fall out of them, and the clearest winning regime. Read before installing if you're unsure the harness fits your work. |
-| `docs/token-efficiency.md` | Operating habits that keep sessions cheap: model-tier principles (deliberately no model names), the sub-agent cost gate, and file/reading habits like front-loading resume-critical sections. |
-| `docs/optional-add-ons.md` | Concept sketches beyond the default install: a capture-first rants/musings folder and a Cowork sibling workspace layout. |
-| `skills/checkpoint/` | `/checkpoint`: rewrites CHECKPOINT.md in place to the schema, enforces the 120-line/~30KB caps, and archives overflow via `archive-changelog.ps1`, a byte-faithful mover script (the model picks which lines to evict; the script moves bytes the model never retypes). |
-| `skills/prevent/` | `/prevent`: when a documented rule got violated because it wasn't in Claude's read path: fix the slip, find the knowledge, diagnose why it missed, and move it to where the failing workflow will actually read it. If you build only one skill, build this one. |
-| `skills/prove/` | `/prove`: extracts every factual claim from the last response and verifies each against files first, then the web; per-claim Confirmed / Wrong / Unverified with citations. |
-| `skills/dumb/` | `/dumb`: "that was wrong or lazy, fix it." Fires on wrongness and on laziness (punting, offering instead of doing, half-answers). Forbids defending the previous response, forces a one-line honest diagnosis plus the actual fix. |
-| `skills/redteam/` | `/redteam`: one adversarial pass that assumes the target is wrong and hunts the fatal flaw. The cheap middle gear between a single-shot answer and `/fanout`. |
-| `skills/outside/` | `/outside`: one cheap external-grounding pass before committing to an approach: shipped-solutions sweep, sibling-project sweep, notes check; verdict-first report with exactly one next action. The "did someone already build this?" gear the rest of the suite lacks. |
-| `skills/fanout/` | `/fanout`: 5 parallel cognitive-frame ideation agents + a critic pass, for open-ended problems only. ~7x tokens, explicitly gated, never automatic. |
-| `skills/breakdown/` | `/breakdown`: convergent, action-first decomposition: real goal, smallest next action, the one blocking decision, collapsed plan, first trap. |
-| `skills/plain/` | `/plain`: re-explains a dense/jargon response in plain generous English, resolving every invented code by looking it up (never guessing). |
-| `skills/spec/` | `/spec`: writes lean specs with a mandatory Closeout section and forces the archive/promote step when the work ships, so dead specs stop piling up looking live. |
-| `skills/necromancy/` | `/necromancy`: recovers a session that died before CHECKPOINT.md was written: a deterministic PowerShell script digests the on-disk session JSONL (anchors: first ask, user decisions, files written, commands, commits, errors) so the model never reads multi-MB raw transcripts. Pattern adapted from [ryanthedev/herderp](https://github.com/ryanthedev/herderp)'s session-necromancy. |
-| `hooks/orient_gate.ps1` / `.sh` | PreToolUse **orientation gate**: blocks the first state-changing tool call of a session until CHECKPOINT.md has been read, then gets out of the way (block-once, fail-open; read-only tools are never gated). |
-| `hooks/guard.ps1` | PreToolUse **mechanical guard**: blocks tool input that would literally break parsing (Windows-specific: non-ASCII into PowerShell, backslash paths into MSYS bash) plus `grep --no-ignore`, a ripgrep-only flag that makes GNU grep exit 2 printing nothing, so a scan that never ran is indistinguishable from a clean one. Worth having if any gate of yours is a grep. Adapt to your own breakages; never block style. |
-| `hooks/deny_backstop.ps1` | PreToolUse **security backstop**: scans the complete Bash/PowerShell command, including command substitution and loop bodies, and blocks a narrow set of catastrophic operations. It includes broad name/pattern/pipeline process kills, requiring an explicit PID instead. Review and adapt its patterns before enabling it. |
-| `hooks/tmux_receipt.ps1` | SessionStart **environment receipt** (optional): detects a tmux/SSH-launched session (stripped PATH, different world than the desktop) and tells the session so, once, at start, so it stops re-deriving "tool not installed" conclusions from bare-name failures. Silent no-op on desktop launches; adapt detection + message to your own remote launch path. |
-| `hooks/settings-*.example.json` | The SessionStart receipt + PreCompact reminder + PreToolUse hooks, wired for Windows and Mac/Linux. The Windows example also wires the optional security backstop. |
-| `templates/` | Per-project `CLAUDE.md` / `CHECKPOINT.md` skeletons and a baseline `.gitignore`. |
+| `checkpoint` | `/checkpoint`: rewrites CHECKPOINT.md in place to the schema, enforces the 120-line/~30KB caps, and archives overflow via `archive-changelog.ps1`, a byte-faithful mover script (the model picks which lines to evict; the script moves bytes the model never retypes). |
+| `prevent` | `/prevent`: when a documented rule got violated because it wasn't in Claude's read path: fix the slip, find the knowledge, diagnose why it missed, and move it to where the failing workflow will actually read it. If you build only one skill, build this one. |
+| `outside` | `/outside`: one cheap external-grounding pass before committing to an approach: shipped-solutions sweep, sibling-project sweep, notes check; verdict-first report with exactly one next action. The "did someone already build this?" gear the rest of the suite lacks. |
+| `prove` | `/prove`: extracts every factual claim from the last response and verifies each against files first, then the web; per-claim Confirmed / Wrong / Unverified with citations. |
+| `redteam` | `/redteam`: one adversarial pass that assumes the target is wrong and hunts the fatal flaw. The cheap middle gear between a single-shot answer and `/fanout`. |
+| `dumb` | `/dumb`: "that was wrong or lazy, fix it." Fires on wrongness and on laziness (punting, offering instead of doing, half-answers). Forbids defending the previous response, forces a one-line honest diagnosis plus the actual fix. |
+| `fanout` | `/fanout`: 5 parallel cognitive-frame ideation agents + a critic pass, for open-ended problems only. ~7x tokens, explicitly gated, never automatic. |
+| `breakdown` | `/breakdown`: convergent, action-first decomposition: real goal, smallest next action, the one blocking decision, collapsed plan, first trap. |
+| `plain` | `/plain`: re-explains a dense/jargon response in plain generous English, resolving every invented code by looking it up (never guessing). |
+| `spec` | `/spec`: writes lean specs with a mandatory Closeout section and forces the archive/promote step when the work ships, so dead specs stop piling up looking live. |
+| `necromancy` | `/necromancy`: recovers a session that died before CHECKPOINT.md was written: a deterministic PowerShell script digests the on-disk session JSONL (anchors: first ask, user decisions, files written, commands, commits, errors) so the model never reads multi-MB raw transcripts. Pattern adapted from [ryanthedev/herderp](https://github.com/ryanthedev/herderp)'s session-necromancy. |
+
+### Hooks (`hooks/`)
+
+Copy the scripts into `~/.claude/hooks/` and merge the matching `settings-*.example.json` block into your **user-level** `~/.claude/settings.json`.
+
+| Hook | What it is |
+|---|---|
+| `orient_gate.ps1` / `.sh` | PreToolUse **orientation gate**: blocks the first state-changing tool call of a session until CHECKPOINT.md has been read, then gets out of the way (block-once, fail-open; read-only tools are never gated). |
+| `guard.ps1` | PreToolUse **mechanical guard**: blocks tool input that would literally break parsing (Windows-specific: non-ASCII into PowerShell, backslash paths into MSYS bash) plus `grep --no-ignore`, a ripgrep-only flag that makes GNU grep exit 2 printing nothing, so a scan that never ran is indistinguishable from a clean one. Worth having if any gate of yours is a grep. Adapt to your own breakages; never block style. |
+| `deny_backstop.ps1` | PreToolUse **security backstop**: scans the complete Bash/PowerShell command, including command substitution and loop bodies, and blocks a narrow set of catastrophic operations. It includes broad name/pattern/pipeline process kills, requiring an explicit PID instead. Review and adapt its patterns before enabling it. |
+| `tmux_receipt.ps1` | SessionStart **environment receipt** (optional): detects a tmux/SSH-launched session (stripped PATH, different world than the desktop) and tells the session so, once, at start, so it stops re-deriving "tool not installed" conclusions from bare-name failures. Silent no-op on desktop launches; adapt detection + message to your own remote launch path. |
+| `settings-*.example.json` | The SessionStart receipt + PreCompact reminder + PreToolUse hooks, wired for Windows and Mac/Linux. The Windows example also wires the optional security backstop. |
+
+### Docs (`docs/`)
+
+| Doc | What it is |
+|---|---|
+| `configuration-guide.md` | The optional configuration tour: permission and settings scope, hooks, skills, MCP, memory choice, compaction, and context-budget checks. Cosmetic settings and model rankings are deliberately excluded. |
+| `maintaining-the-harness.md` | The human maintenance procedure that was deliberately removed from the installer: file budgets, the two-pass rulebook diet, contradiction checks, and outside-audit workflow. |
+| `design-history.md` | A dated record of the public patterns reviewed, what this toolbox adopted or declined, and the choices it added. It is design history, not a current market survey. |
+| `when-it-pays-off.md` | The measured regime boundary in practical form: the three task-shape regimes, five rules of thumb that fall out of them, and the clearest winning regime. Read before installing if you're unsure the harness fits your work. |
+| `token-efficiency.md` | Operating habits that keep sessions cheap: model-tier principles (deliberately no model names), the sub-agent cost gate, and file/reading habits like front-loading resume-critical sections. |
+| `optional-add-ons.md` | Concept sketches beyond the default install: a capture-first rants/musings folder and a Cowork sibling workspace layout. |
+
+### Templates (`templates/`)
+
+Per-project `CLAUDE.md` / `CHECKPOINT.md` skeletons and a baseline `.gitignore`.
 
 ## Why trust any of this
 
