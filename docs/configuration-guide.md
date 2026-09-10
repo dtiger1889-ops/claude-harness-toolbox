@@ -47,6 +47,11 @@ Skill names and descriptions can consume startup context even when the full skil
 not loaded. Keep descriptions focused on when the skill should trigger, and disable skills
 that do not belong in the current setup.
 
+Hard limit worth knowing before you upload a skill to claude.ai: the frontmatter `description`
+must be at most 1024 characters, or the upload is rejected with "field 'description' in
+SKILL.md must be at most 1024 characters". The bundled sync engine refuses to build a bundle
+over that cap so the failure shows up at edit time rather than in the browser.
+
 See [Extend Claude with skills](https://code.claude.com/docs/en/slash-commands).
 
 ## MCP servers
