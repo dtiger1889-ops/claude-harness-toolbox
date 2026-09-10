@@ -1,19 +1,17 @@
 ---
 name: checkpoint
-description: Rewrite the current project's CHECKPOINT.md in place to the harness
-  schema. Use when the user types /checkpoint or says "checkpoint" / "save progress" /
-  "update checkpoint", and at the end of a logically complete task or when context is
-  about to compact. Overwrites in place -- never creates a new or timestamped file (this
-  is NOT a /handoff). Enforces the section shape, the 120-line / ~30KB caps (archive
-  oldest changelog on overflow), and the Last-updated bump. If a project/workspace
-  CLAUDE.md states a CHECKPOINT rule that differs from these steps, CLAUDE.md wins.
-  NEVER ask the user whether to checkpoint -- when in doubt, just do it. It is never a
-  bad time to checkpoint; offering instead of doing wastes a turn. A logically complete
-  unit of work always earns a changelog entry in a project that keeps one, even when it
-  changed no live state or produced only research or reference output -- "it was a
-  one-off" is never a reason to skip. A session that kept CHECKPOINT.md current in
-  place earns the LIGHT CLOSE (step 0) -- changelog entry + one finisher call, not a
-  full re-verify.
+description: >-
+  Rewrite the current project's CHECKPOINT.md in place to the harness schema. Use when
+  the user types /checkpoint or says "checkpoint" / "save progress" / "update
+  checkpoint", at the end of a logically complete task, or when context is about to
+  compact. Overwrites in place, never a new or timestamped file (not a /handoff). Enforces
+  the section shape, the 120-line / ~30KB caps (archives the oldest changelog on
+  overflow), and the Last-updated bump; a project or workspace CLAUDE.md that states a
+  different CHECKPOINT rule wins. NEVER ask the user whether to checkpoint; when in
+  doubt, do it, because offering wastes a turn. Every logically complete unit of work
+  earns a changelog entry in a project that keeps one, even research-only or "one-off"
+  work. A session that kept CHECKPOINT.md current earns the LIGHT CLOSE (step 0), a
+  changelog entry plus one finisher call, not a full re-verify.
 ---
 The CHECKPOINT is STATE, not a spec, and it is overwritten in place. Make it reflect
 reality so a cold session can resume from it alone.
