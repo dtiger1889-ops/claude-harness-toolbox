@@ -48,17 +48,22 @@ Choose the strongest applicable rung:
 1. **Mechanical enforcement** -- if the mistake is a command pattern, a hook or
    settings.json deny rule beats any prose.
 2. **Colocated doc** -- a `CLAUDE.md` (or top-of-file comment / README line) sitting IN
-   the directory where the work happens, stating the rule in its first lines. Example:
-   a deployed-artifact folder whose colocated CLAUDE.md opens with "edit the deployed
-   copy and toggle the extension -- NEVER reinstall the installer package."
+   the directory where the work happens, stating the rule in its first lines. Example
+   from the canonical case: a deployed-extension folder whose colocated CLAUDE.md opens
+   with "installed extensions run from the extracted folder -- sync edits there and
+   toggle the extension; the installer package is first-install convenience only, NEVER
+   tell the user to reinstall it."
 3. **Project CLAUDE.md** (stable rule) or **CHECKPOINT.md open thread / Key decision**
    (mutable state) of the project the workflow starts from -- respecting the 30-line and
-   120-line caps.
+   120-line caps; if it's cross-project runtime behavior, a catch-all meta-project is the
+   right home.
 
 If your setup treats the harness files as the ONLY durable memory (this harness does --
 see harness_me.txt on auto-memory), a fix that lands only in an auto-memory file is a
-FAILED /prevent: put it in the files future sessions actually read. If you do use
-auto-memory as your durable store, it counts as a rung -- but pick one store and commit.
+FAILED /prevent: put it in the files future sessions actually read. That includes rules
+about how to treat the user rather than an artifact -- those go in CLAUDE.md
+(workspace-level for cross-project behavior). If you do use auto-memory as your durable
+store, it counts as a rung -- but pick one store and commit.
 
 If the fact already lives somewhere legitimate, don't delete it -- leave the detailed
 version where it is and put the short load-bearing line + pointer in the new location.
@@ -84,3 +89,18 @@ behavior -- the file IS the promise.
 
 ## Scope
 Not /dumb (fix only, no harness change) and not /prove (verify claims, not prevent repeats).
+
+## Runtime -- what changes in a cloud / sandboxed session with no local shell
+
+Steps 1, 3, and 5 are reasoning and run unchanged. Step 2's `grep -rin` searches the
+container, not the user's machine: search the workspace through whatever filesystem bridge
+the runtime gives you. If that bridge publishes an allowlist of reachable folders, re-check
+it at the moment of need -- these allowlists commonly mutate mid-session; request access to
+the workspace root if it is not connected rather than guessing a path. Step 4 rungs 2 and 3
+(a colocated CLAUDE.md, a project CLAUDE.md or CHECKPOINT entry) write fine over a connected
+folder.
+**Step 4 rung 1 -- the hook / settings.json deny rule -- cannot run at all** when the agent's
+own config directory is outside what the bridge can reach. Instead, deliver a written proposal
+for a local session: the exact hook or deny-rule text, the file it goes in, and the trigger it
+fires on, landed in the owning project's CHECKPOINT Open threads as `[owner] [low]` in the same
+turn. A proposal that lands only in chat is a FAILED /prevent, same as a spoken promise.
