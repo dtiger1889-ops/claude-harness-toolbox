@@ -27,7 +27,7 @@ prune it (no "Closed this session" graveyard). Litmus: still contestable AND rec
 - **Failed approaches:** [what was tried and abandoned, and why — a future session can't reconstruct this from files. Include only when relevant.]
 
 ## Open threads
-- [bullet: a discrete piece of OPEN work still to do. Specific enough that "done" is checkable. Reads like a to-do list, never a graveyard of finished items. Optional tags where they earn their keep: `[high]` priority · `[blocked-by: X]` / `[gates: Y]` · `[quick|moderate|heavy]` effort · `[human]` for human-gated items (untagged = agent-runnable).]
+- [bullet: a discrete piece of OPEN work still to do. Specific enough that "done" is checkable. Reads like a to-do list, never a graveyard of finished items. Every top-level bullet ends with two tags, gate then complexity: `[owner]` when the next action needs the user's hands or an explicit decision from them, else `[agent]`; then `[low]` when a smaller/cheaper model can finish it from the bullet alone, else `[high]`. `[blocked-by: X]` / `[gates: Y]` may sit before the pair; sub-bullets carry no tags. Don't hand-sort — the checkpoint skill's finisher sorts tagged bullets into owner-low, owner-high, agent-low, agent-high order at every close.]
 - [bullet]
 
 ## Files that matter

@@ -8,7 +8,8 @@ Use this file as an execution contract. Human-facing rationale, configuration gu
 benchmark results, and component descriptions live in `README.md` and `docs/`; do not
 load them during installation unless the user asks.
 
-Last updated: 2026-08-18.
+Last updated: 2026-09-15 (Open-threads tag scheme in the embedded CHECKPOINT.md template
+corrected to match the current checkpoint skill's [owner]/[agent] + [low]/[high] tags).
 
 ## 0. Hard rules
 
@@ -209,9 +210,13 @@ only here?]
 
 ## Open threads
 - (bullets — the source of truth for incomplete work; reads like a to-do list, never a
-  graveyard of done items. Optional tags where they earn their keep: `[high]` priority ·
-  `[blocked-by: X]` / `[gates: Y]` · `[quick|moderate|heavy]` effort · `[human]` for
-  human-gated items — untagged means agent-runnable)
+  graveyard of done items. Every top-level bullet ends with two tags, gate then
+  complexity: `[owner]` when the next action needs the user's hands or an explicit
+  decision from them, else `[agent]`; then `[low]` when a smaller/cheaper model can
+  finish it from the bullet alone, else `[high]`. `[blocked-by: X]` / `[gates: Y]` may
+  sit before the pair; sub-bullets carry no tags. The checkpoint skill's finisher sorts
+  tagged bullets into owner-low, owner-high, agent-low, agent-high order at every close
+  — don't hand-sort)
 
 ## Files that matter
 - `[path]` — [one-line role]

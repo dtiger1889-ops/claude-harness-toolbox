@@ -212,9 +212,11 @@ macOS/Linux. On a runtime with no PowerShell at all, see the Runtime section at 
    Edit after a finisher call.)
 6. ENFORCE THE CAPS -- 120 lines AND ~30KB, PLUS the live-section budgets (the changelog is
    the record -- live sections are terse pointers, narrative lives in the changelog).
-   Step 5's script printed all of it (exit 2 = over a
-   cap OR SECTION BLOAT: Status > 1 line/~300 chars, Goal > 3 lines, Next step > 2
-   lines/~350 chars; >700-char Open-threads bullets get a WARN); trust its output, no
+   Step 5's script printed all of it: exit 2 = over the 120-line/~30KB
+   cap. SECTION BLOAT (Status > 1 line/~300 chars, Goal > 3 lines, Next step > 2
+   lines/~350 chars; >700-char Open-threads bullets get a WARN) is ADVISORY by default
+   (exit 0) -- it only becomes a hard exit-2 gate when the file's first 5 lines carry
+   `<!-- checkpoint-budgets: strict -->`. Either way, trust the script's output, no
    separate measurement pass. On SECTION BLOAT, compress the flagged section -- verify the
    cut content already exists in the changelog / a pointer target (move it there first if
    not), then re-run the finisher. (Manual
