@@ -58,7 +58,7 @@ Order is fixed:
 1. **Verdict line first:** current approach survives / dies / mutates -- plus the
    one-clause why.
 2. **What exists:** 2-3 genuinely different ways to attack the problem, numbered, each
-   with its strongest source (link or file:line). Max 5 items total. Adopt/adapt beats
+   with its strongest source (link or file:line). Max 5 items total (a cap on what the report SHOWS, never on how much the sweeps find or consider; adapted from ayghri/i-have-adhd rule 9, 2026-09-14). Adopt/adapt beats
    greenfield; recommending greenfield requires saying what WAS found and why it doesn't
    fit.
 3. **One next action, last line.** Exactly one.

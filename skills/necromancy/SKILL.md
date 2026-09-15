@@ -8,7 +8,9 @@ description: Recover a Claude Code session that died before a CHECKPOINT was wri
   (no model cost on the raw transcript), extracts anchors (ask, user decisions, final
   state, files written, commands, commits, errors), and synthesizes a resume summary.
   NOT for gracefully-closed work -- if CHECKPOINT.md reflects the session, just read
-  it. Pattern adapted from ryanthedev/herderp's session-necromancy (regex anchors,
+  it. Not for other coding agents' sessions (Codex CLI, aider, Cursor) or non-session
+  artifacts (git stashes, editor autosaves, uncommitted changes); those have their own
+  recovery paths. Pattern adapted from ryanthedev/herderp's session-necromancy (regex anchors,
   newest-first ranking, everything capped), without the wrapper tooling.
 ---
 Recover state from a dead session's on-disk transcript. The script does the heavy
