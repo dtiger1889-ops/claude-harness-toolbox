@@ -69,6 +69,9 @@ milestone.
 ## Rules
 - One pass, no subagents. A dry sweep is a RESULT ("nothing shipped does this") -- report
   it plainly, don't pad.
+- Every finding names its source (a link or file:line). Not found means say "not found" --
+  never fill the gap from memory. (Adopted 2026-09-15 from the AI Tools keepers review; /prove
+  already enforces this after the fact, this makes it the rule up front.)
 - If the sweeps confirm the current approach, say so and stop; do not manufacture
   alternatives to look useful.
 - This is reconnaissance, not a research milestone. If it uncovers a rabbit hole worth
