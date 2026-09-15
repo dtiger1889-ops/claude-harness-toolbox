@@ -17,10 +17,16 @@ Copy this checklist into your response and check items off as you complete them:
 - [ ] 4. Notes check
 - [ ] 5. Report (verdict first, one next action last)
 
-## 0 -- orient
+## 0 -- orient (a hard step, not a reminder)
 If in a project with a state/checkpoint file not fully read this session, read it to EOF
 first. Its recorded decisions and failed approaches may already contain the answer -- or
 be the tunnel itself.
+**Before step 2 may run, quote back in your response:** the state file's status line
+verbatim, and the headings of its recorded decisions (or "none"). A pass that cannot quote
+them has not oriented and does not proceed to the web. Why this is a hard step: an
+orientation hook only fires on world-changing tool calls, and /outside opens with
+read-only work, so nothing else catches a pass that skips this; it was skipped twice in the
+maintainer's lapse ledger and both times the answer was already in the state file.
 
 ## 1 -- name the tunnel
 Two sentences, no more:
@@ -31,7 +37,11 @@ Two sentences, no more:
 ## 2 -- shipped-solutions sweep
 Web search for what already exists for this exact ask: GitHub repos, published
 skills/MCP servers, community writeups, a library, a product someone already ships.
-1-3 searches. Prefer free search tools over metered scraping services.
+1-3 searches. Prefer free search tools over metered scraping services. One of the searches
+is always the standing question "what do the LARGEST agent runtimes / platforms do for
+this?" (Claude Code, Codex, OpenClaw, Cursor, the big open-source agent frameworks) -- a
+sweep keyed only on the deliverable's own nouns missed the largest adjacent platform until
+the user asked.
 
 ## 3 -- workspace sweep
 Has a sibling project already solved this problem shape? Search the state files,

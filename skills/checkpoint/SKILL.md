@@ -157,16 +157,29 @@ macOS/Linux. On a runtime with no PowerShell at all, see the Runtime section at 
    still broken. Reserve `[owner]` threads for truly owner-gated steps ONLY (auth/OAuth, a
    physical device in hand, a UI-only click); a "verify it works later" test is never one of
    those, and tagging a model-runnable check `[owner]` is the exact failure this kills.
-4.5 CHECK THE FILE'S OWN CLAIMS -- BEFORE the finisher. Every path, file and pointer the
-   rewrite states must exist: resolve each one and fix the pointer (or the claim around it)
-   before going on. Reconcile the file's git claims (unpushed / uncommitted / "pushed") with
-   what git actually reports, and re-examine any date older than 30 days and any owner-gated
-   thread. Runs on EVERY close INCLUDING light closes -- one real four-defect close PRESENTED
-   as a light close. This step exists because the original step 2 had no failure signal and
-   was therefore reliably skipped; a close-time script that exits non-zero on a dead pointer,
-   the way the cap check does, is the mechanical version and is worth building for your own
-   layout. Whatever this step surfaces is addressed to YOU, never pasted to the user
-   (step 7's relay rule applies).
+4.5 VERIFY MECHANICALLY -- BEFORE the finisher. Run
+   `verify_checkpoint_claims.ps1 -Checkpoint <path>` from this folder.
+   Exit 2 = dead paths OR undispositioned stale Open-threads bullets, each named: fix the
+   pointer (or the claim around it) and re-run until it exits 0 -- the finisher comes AFTER
+   this passes. Its REVIEW block (live git truth vs the file's unpushed/uncommitted claims)
+   and the informational STALENESS / TAG / ATTRIBUTION / JARGON PROMPTS are judgment items:
+   reconcile them in the rewrite; they are addressed to YOU, never pasted to the user
+   (step 7's relay rule applies). Runs on EVERY close INCLUDING light closes -- one real
+   four-defect close PRESENTED as a light close.
+   **STALENESS FAILURES are not prompts -- they block exit 0.** Why: printing "not a
+   failure" let the model stamp over a flagged bullet anyway, four times in the maintainer's
+   lapse ledger. A stale-DATED Open-threads bullet (it carries a date older than 30 days; an
+   undated `[owner]` bullet only gets an advisory prompt) needs one of two dispositions:
+   PRUNE it (it is no longer open), or mark it kept with `[kept YYYY-MM-DD: reason]` -- a
+   date within the last 30 days plus a reason of at least 12 characters that is not
+   copy-pasted onto another bullet in the same file (an expired marker, a too-short reason,
+   or a duplicated reason all still fail). A bullet whose own date is already within 30 days
+   needs no marker. Per-project opt-out: a `staleness: advisory` line in
+   `<project>/.checkpoint-verify-ignore` restores informational-only behavior for that file.
+   Optional environment: `HARNESS_WORKSPACE_ROOT` (defaults to the project's parent folder)
+   and `HARNESS_NOTES_ROOT` (a notes system, if the file points into one) help it resolve
+   cross-project and notes-relative paths. This step exists because the original step 2 had
+   no failure signal and was therefore reliably skipped.
 5. STAMP + MEASURE IN ONE CALL. Run
    `finish-checkpoint.ps1 -Checkpoint <path>` from this folder
    -- it rewrites the `Last updated:` line with real UTC itself (preserving an existing
