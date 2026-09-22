@@ -1,0 +1,58 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/tmux_receipt.ps1\""
+          },
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -Command \"try { if (Test-Path CHECKPOINT.md) { Write-Output '=== CHECKPOINT RECEIPT (resume context for this project) ==='; Write-Output ('CHECKPOINT.md present: ' + (Get-Item CHECKPOINT.md).Length + ' bytes / ' + @(Get-Content CHECKPOINT.md).Count + ' lines. NOT inlined here.'); Write-Output 'ACTION: Read CHECKPOINT.md to EOF before any non-pre-oriented action. If the Read shows a truncation / partial-view notice, re-Read with offset+limit until complete.'; Write-Output '=== end RECEIPT ===' } } catch { Write-Output '=== CHECKPOINT RECEIPT ERROR -- manually Read CHECKPOINT.md before acting ===' }\""
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -Command \"if (Test-Path CHECKPOINT.md) { Write-Output 'REMINDER: Context is about to be compacted. If CHECKPOINT.md in the current project has not been updated this session, rewrite it now with compressed state before proceeding.' }\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/guard.ps1\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/deny_backstop.ps1\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|WebSearch|WebFetch|mcp__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/orient_gate.ps1\""
+          }
+        ]
+      }
+    ]
+  }
+}

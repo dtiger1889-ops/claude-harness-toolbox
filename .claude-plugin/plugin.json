@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "claude-harness-toolbox",
+  "displayName": "Claude Code Harness Toolbox",
+  "version": "1.0.0",
+  "description": "A tested harness for durable work across coding agents: CLAUDE.md/CHECKPOINT.md state files, an orientation gate and other hooks, and eleven skills that encode the conventions so you never re-explain them.",
+  "author": {
+    "name": "dtiger1889-ops",
+    "url": "https://github.com/dtiger1889-ops"
+  },
+  "homepage": "https://github.com/dtiger1889-ops/claude-harness-toolbox",
+  "repository": "https://github.com/dtiger1889-ops/claude-harness-toolbox",
+  "license": "MIT",
+  "keywords": [
+    "harness",
+    "checkpoint",
+    "context-management",
+    "hooks",
+    "skills",
+    "workflow"
+  ],
+  "skills": [
+    "./skills/breakdown/",
+    "./skills/checkpoint/",
+    "./skills/dumb/",
+    "./skills/fanout/",
+    "./skills/necromancy/",
+    "./skills/outside/",
+    "./skills/plain/",
+    "./skills/prevent/",
+    "./skills/prove/",
+    "./skills/redteam/",
+    "./skills/spec/"
+  ],
+  "hooks": "./hooks/hooks.json"
+}

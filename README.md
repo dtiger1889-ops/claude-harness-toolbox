@@ -12,7 +12,41 @@ storage layer: `CLAUDE.md` for stable facts, `CHECKPOINT.md` for compressed muta
 hooks that surface and enforce them, and a suite of skills that encode the conventions so
 you never re-explain them.
 
-## Quick start
+## Install
+
+### As a Claude Code plugin (skills + hooks, two commands)
+
+Inside any Claude Code session, run:
+
+```
+/plugin marketplace add dtiger1889-ops/claude-harness-toolbox
+```
+
+```
+/plugin install claude-harness-toolbox@harness-toolbox
+```
+
+The first command registers this repository as a plugin marketplace; the second installs
+the plugin from it. That gives you all eleven skills as `/slash` commands and wires the
+hooks automatically — no hand-merging a block into `settings.json`, and no absolute paths
+to edit, because the plugin resolves its own scripts.
+
+To try it from a local clone before installing, point the marketplace command at the
+folder instead (`/plugin marketplace add ./claude-harness-toolbox`), or load it for one
+session with `claude --plugin-dir ./claude-harness-toolbox`.
+
+**Platform caveat.** The hooks the plugin wires are the Windows PowerShell set
+([`hooks/hooks.json`](hooks/hooks.json)) — the maintainer's live, tested reference. On
+macOS/Linux the skills work as-is, but replace the installed plugin's `hooks/hooks.json`
+with [`hooks/hooks-macos-linux.json`](hooks/hooks-macos-linux.json) (the bash orientation
+gate plus the receipt and compaction reminder), or skip the plugin's hooks and wire
+`hooks/settings-macos-linux.example.json` by hand as described below. Neither bash path
+has been verified on that hardware.
+
+The plugin does **not** create the workspace scaffold. For that, and for the guided
+install, use `harness_me.txt` below.
+
+### The guided install (any file-capable agent)
 
 Flip over to the "</> Code" tab in Claude Desktop (or open a fresh Claude Code session),
 set the permission mode to Manual or Accept edits for your security, set the model to
@@ -29,7 +63,7 @@ rollback-record contract. Design rationale stays here in the README and in the b
 with configuration, maintenance, and historical guidance under [`docs/`](docs/), so an
 installing session does not pay to parse them.
 
-Then, optionally:
+### By hand (no plugin support, or another agent)
 
 - **Skills**: copy any folder from [`skills/`](skills/) into `~/.claude/skills/<name>/`.
   Each becomes a `/slash` command in every project.
@@ -72,7 +106,8 @@ Copy the scripts into `~/.claude/hooks/` and merge the matching `settings-*.exam
 | `guard.ps1` | PreToolUse **mechanical guard**: blocks tool input that would literally break parsing (Windows-specific: non-ASCII into PowerShell, backslash paths into MSYS bash) plus `grep --no-ignore`, a ripgrep-only flag that makes GNU grep exit 2 printing nothing, so a scan that never ran is indistinguishable from a clean one. Worth having if any gate of yours is a grep. Adapt to your own breakages; never block style. |
 | `deny_backstop.ps1` | PreToolUse **security backstop**: scans the complete Bash/PowerShell command, including command substitution and loop bodies, and blocks a narrow set of catastrophic operations. It includes broad name/pattern/pipeline process kills, requiring an explicit PID instead. Review and adapt its patterns before enabling it. |
 | `tmux_receipt.ps1` | SessionStart **environment receipt** (optional): detects a tmux/SSH-launched session (stripped PATH, different world than the desktop) and tells the session so, once, at start, so it stops re-deriving "tool not installed" conclusions from bare-name failures. Silent no-op on desktop launches; adapt detection + message to your own remote launch path. |
-| `settings-*.example.json` | The SessionStart receipt + PreCompact reminder + PreToolUse hooks, wired for Windows and Mac/Linux. The Windows example also wires the optional security backstop. |
+| `settings-*.example.json` | The SessionStart receipt + PreCompact reminder + PreToolUse hooks, wired for Windows and Mac/Linux. The Windows example also wires the optional security backstop. For the by-hand install. |
+| `hooks.json` / `hooks-macos-linux.json` | The same wiring in plugin form, using the plugin's own root path so there is nothing to edit. `hooks.json` (Windows) is what the plugin loads; swap in `hooks-macos-linux.json` on Mac/Linux. |
 
 ### Docs (`docs/`)
 

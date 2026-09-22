@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if [ -f CHECKPOINT.md ]; then echo \"=== CHECKPOINT RECEIPT (resume context for this project) ===\"; echo \"CHECKPOINT.md present (lines bytes filename):\"; wc -l -c CHECKPOINT.md; echo \"NOT inlined here. ACTION: Read CHECKPOINT.md to EOF before any non-pre-oriented action. If the Read shows a truncation / partial-view notice, re-Read until complete.\"; echo \"=== end RECEIPT ===\"; fi'"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if [ -f CHECKPOINT.md ]; then echo \"REMINDER: Context is about to be compacted. If CHECKPOINT.md in the current project has not been updated this session, rewrite it now with compressed state before proceeding.\"; fi'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|WebSearch|WebFetch|mcp__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/orient_gate.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}
