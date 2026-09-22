@@ -3,9 +3,12 @@ name: dumb
 description: The user is telling you the last thing you said or did was wrong, lazy, or
   missed the point -- and you need to FIX it, not defend it. Use when the user types /dumb
   or says "that was dumb" / "that was stupid" / "stop being lazy" / "fix it" about your
-  previous response. Re-examine your immediately previous response/action assuming it was
-  wrong, name the real failure without rationalizing, and actually fix it (do the work,
-  not explain why it was fine).
+  previous response, AND on the cheap laziness signals that arrive first: "why am I still
+  seeing this" / "why didn't you" / "you said you did" / "that's not done" / "did you
+  actually" / "just do it" / "you skipped". Re-examine your immediately previous
+  response/action assuming it was wrong, name the real failure without rationalizing, and
+  actually fix it (do the work, not explain why it was fine). Ends by writing the
+  correction down, not just fixing it.
 ---
 
 # dumb -- you got it wrong; recognize it and fix it
@@ -38,3 +41,10 @@ Show the corrected output. Minimal narration. Don't re-explain at length or fish
 
 If you genuinely cannot tell what was wrong, ask ONE tight question -- but only if it's truly
 unclear; usually it is obvious from the user's reaction.
+
+## Step 4 -- write it down
+A correction is a reusable fact: what was got wrong and why. After the fix, record it where
+your project keeps its lessons (a lapse log, a CHECKPOINT note, a rule in the relevant
+CLAUDE.md). Never end a /dumb turn with the fix only in scrollback -- the cheapest signal
+("why am I still seeing this?") is the one that costs the user an extra turn, and a
+correction nobody wrote down gets paid for again.

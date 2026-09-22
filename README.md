@@ -89,7 +89,7 @@ Copy any folder into `~/.claude/skills/<name>/`. Each becomes a `/slash` command
 | `outside` | `/outside`: one cheap external-grounding pass before committing to an approach: shipped-solutions sweep, sibling-project sweep, notes check; verdict-first report with exactly one next action. The "did someone already build this?" gear the rest of the suite lacks. |
 | `prove` | `/prove`: extracts every factual claim from the last response and verifies each against files first, then the web; per-claim Confirmed / Wrong / Unverified with citations. |
 | `redteam` | `/redteam`: one adversarial pass that assumes the target is wrong and hunts the fatal flaw. The cheap middle gear between a single-shot answer and `/fanout`. |
-| `dumb` | `/dumb`: "that was wrong or lazy, fix it." Fires on wrongness and on laziness (punting, offering instead of doing, half-answers). Forbids defending the previous response, forces a one-line honest diagnosis plus the actual fix. |
+| `dumb` | `/dumb`: "that was wrong or lazy, fix it." Fires on wrongness and on laziness (punting, offering instead of doing, half-answers). Forbids defending the previous response, forces a one-line honest diagnosis plus the actual fix, and ends by writing the correction down so it is not paid for twice. |
 | `fanout` | `/fanout`: 5 parallel cognitive-frame ideation agents + a critic pass, for open-ended problems only. ~7x tokens, explicitly gated, never automatic. |
 | `breakdown` | `/breakdown`: convergent, action-first decomposition: real goal, smallest next action, the one blocking decision, collapsed plan, first trap. |
 | `plain` | `/plain`: re-explains a dense/jargon response in plain generous English, resolving every invented code by looking it up (never guessing). |
