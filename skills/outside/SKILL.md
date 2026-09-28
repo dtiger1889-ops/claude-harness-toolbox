@@ -37,7 +37,7 @@ Two sentences, no more:
 ## 2 -- shipped-solutions sweep
 Web search for what already exists for this exact ask: GitHub repos, published
 skills/MCP servers, community writeups, a library, a product someone already ships.
-1-3 searches. Prefer free search tools over metered scraping services. One of the searches
+1-3 searches. Prefer free search tools over metered scraping services. When the thing on trial is something being BUILT, one search is always "which maintained library or component already does this" -- not only design advice (a hand-built data table once got patched for a day before anyone searched for a table library). One of the searches
 is always the standing question "what do the LARGEST agent runtimes / platforms do for
 this?" (Claude Code, Codex, OpenClaw, Cursor, the big open-source agent frameworks) -- a
 sweep keyed only on the deliverable's own nouns missed the largest adjacent platform until
