@@ -17,8 +17,9 @@ replaces it.
 ## When it runs
 - **By hand:** the user invokes `/log`, or says the last answer produced something worth
   keeping.
-- **As a backstop (optional):** a PostToolUse hook can make the model run this skill after a
-  `/prove`, `/prevent`, `/fanout`, or `/outside` turn. Treat that as a consideration pass: if
+- **As a backstop (optional):** the toolbox's `hooks/log_backstop.ps1` (a PostToolUse hook)
+  makes the model run this skill after a `/prove`, `/prevent`, `/fanout`, `/outside`, or
+  `/dumb` turn. Treat that as a consideration pass: if
   nothing durable came out, say "nothing to log" and stop. Never invent a finding to look
   useful.
 

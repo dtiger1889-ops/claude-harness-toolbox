@@ -86,6 +86,16 @@ try {
         }
     }
 
+    # 7. Reading ~/.claude/.credentials.json from a script or command. The file is a token
+    #    cache that only a terminal-attached Claude Code session refreshes; a headless reader
+    #    (a usage poller, a scheduled script) gets a token that can be days stale and a 401.
+    #    Usage and rate-limit numbers belong to the statusline JSON Claude Code hands its
+    #    statusline command (rate_limits.*), not to this file.
+    if (-not $blockMsg -and $cmd -match '(?i)\.credentials\.json') {
+        [Console]::Error.WriteLine('BLOCKED by security backstop hook: this command touches ~/.claude/.credentials.json. Outside an interactive session that file is a stale token cache (a headless reader gets a days-old token and a 401). For usage or rate-limit numbers, read the JSON Claude Code passes to your statusline command (rate_limits.*) instead.')
+        exit 2
+    }
+
     if ($blockMsg) {
         [Console]::Error.WriteLine("BLOCKED by security backstop hook: $blockMsg. This operation is catastrophic or irreversible in auto-approve mode. If you truly intend it, run it yourself.")
         exit 2

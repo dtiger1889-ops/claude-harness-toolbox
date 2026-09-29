@@ -38,6 +38,12 @@ Default target: the immediately previous assistant message. If the user pasted t
    genuinely unavoidable, define it inline the first time you use it.
 5. **Structure for reading** -- short paragraphs or a plain list, not a block.
 
+## Worked example
+- **Bad:** "The F027 gate blocks the B13 rung until the def_hash reconciles."
+- **Good:** "One check (the project calls it F027) won't let the build move on until two
+  copies of the file match. Right now they don't."
+- Why: the bad version swapped one shorthand for another and left the reader no better off.
+
 ## Rules
 - Plain, conversational English, structured to be digestible: answer first, short
   paragraphs, expansive enough to define every term -- never a wall of text.

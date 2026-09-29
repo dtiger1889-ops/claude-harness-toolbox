@@ -93,9 +93,13 @@ Show the user the critic's **## Top 3 deepened**, **## Trap union**, and
 **## Synthesis** in chat. Summarize the convergence (which directions multiple
 frames independently reached). Do NOT dump all 5 raw frame outputs unless asked.
 
-By default persist nothing (leftover scratch files are their own mess). If the
-user wants the full record, offer to save the critic output + frames to a path
-they name.
+The 5 raw frame outputs and the critic's scratch stay ephemeral -- do not save
+them unless the user asks. But the durable conclusion -- the critic's
+**## Synthesis** + **## Top 3 deepened** -- is a `/log` candidate by default: run
+`/log` to route it into the doc that owns it, rather than waiting to be told (an
+earlier "persist nothing unless told" default meant good syntheses evaporated with
+the session). `/log` itself stops at "nothing to log" when the synthesis is not
+actually durable, so this never creates leftover scratch.
 
 ## Notes
 

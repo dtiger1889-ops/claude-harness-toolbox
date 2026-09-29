@@ -338,6 +338,10 @@ If only this guide is available, use Appendix A.
   before enabling; merge its PreToolUse object.
 - tmux/SSH receipt: copy `hooks/tmux_receipt.ps1`; enable only if the user's remote launch
   environment differs from desktop.
+- Windows interview gate: copy `hooks/grill_gate.ps1`; merge its UserPromptSubmit and
+  PreToolUse objects. Pairs with the `grill-me` skill; install both or neither.
+- Windows `/log` reminder: copy `hooks/log_backstop.ps1`; merge its PostToolUse object
+  (matcher `Skill`). Pairs with the `log` skill; install both or neither.
 
 Keep hook policies in separate matcher objects. Do not merge them into one broad matcher.
 

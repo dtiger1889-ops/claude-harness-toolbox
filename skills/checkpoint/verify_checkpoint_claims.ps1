@@ -355,6 +355,48 @@ foreach ($ln in $lines) {
 }
 if ($attrTotal -gt $attrCap) { $attrPrompts += "... and $($attrTotal - $attrCap) more" }
 
+# --- 3.9 Verified-claim prompts (added 2026-09-23) ----------------------------
+# A stale "verified" claim is trusted more than an ordinary claim, so it costs a future session
+# the most when it has quietly gone false. A Status or Key decisions line that uses a
+# verification word must name WHAT was run and WHEN. The line passes when it carries a date
+# (YYYY-MM-DD) AND a run name (a backticked name or a script/test file name), or a test count
+# ("27 tests", "12 passed", "30/30"). Negated uses ("not verified", "never tested") and owner
+# checks ("the user confirmed", "owner-verified") are not claims of a run; "green" counts only
+# in its pass sense. A dry run over 53 real CHECKPOINTs tuned these exemptions (the colour
+# green, "109 JVM tests green"). Advisory only, never a failure; exit code unchanged.
+$verPrompts = @()
+$verTotal = 0
+$verCap = 6
+# "green" counts only in a pass sense ("tests green", "is green", "all green"), never as a colour.
+$verWord = '(?i)\b(live-verified|verified|tested|passes|passing|confirmed)\b|(?i)(?<=\b(is|are|all|tests?|suite|build|CI|stays|went|now|still)\s)green\b'
+$inVerSec = $false
+foreach ($ln in $lines) {
+    if ($ln -match '^##\s') { $inVerSec = ($ln -match '^##\s+(Status|Key decisions)'); continue }
+    if (-not $inVerSec) { continue }
+    $t = $ln.Trim()
+    if ($t.Length -eq 0) { continue }
+    if ($t -match '^\s*-\s+20\d{2}-\d{2}-\d{2}\s+--') { continue }   # changelog-shaped bullet: history
+    # Drop negated and owner-confirmation phrases before looking for the claim word.
+    $scan = $t -replace '(?i)\b(not|never|nothing|none)\s+(yet\s+|been\s+|was\s+|were\s+|is\s+)?(live-verified|verified|tested|confirmed)\b', ' '
+    $scan = $scan -replace '(?i)\b(owner|the user|user|he|she|they)(\s+(has\s+|had\s+)?|-)(confirmed|verified|passes)\b', ' '
+    $vm = [regex]::Match($scan, $verWord)
+    if (-not $vm.Success) { continue }
+    $hasDate  = ($t -match '\b20\d{2}-\d{2}-\d{2}\b')
+    $hasName  = ($t -match '`[^`\r\n]+`' -or $t -match '(?i)\b[\w.-]+\.(ps1|py|sh|js|ts|mjs|cjs|bat|cmd|json|yml|yaml)\b')
+    $hasCount = ($t -match '(?i)\b\d+\s+(\w+\s+)?(tests?|passed|passing|cases?|checks?|goldens?)\b' -or $t -match '\b\d+\s*/\s*\d+\b')   # "30/30", "tests 23/23", "(7/7)"
+    if ($hasCount -or ($hasDate -and $hasName)) { continue }
+    $verTotal++
+    if ($verPrompts.Count -lt $verCap) {
+        $start = [Math]::Max(0, $vm.Index - 40)
+        $len = [Math]::Min($scan.Length - $start, 100)
+        $ex = $scan.Substring($start, $len).Trim() -replace '^\-\s*', '' -replace '\s{2,}', ' '
+        if ($start -gt 0) { $ex = '...' + $ex }
+        if ($start + $len -lt $scan.Length) { $ex = $ex + '...' }
+        $verPrompts += "VERIFIED-CLAIM PROMPT: $ex -- name what was run and when"
+    }
+}
+if ($verTotal -gt $verCap) { $verPrompts += "... and $($verTotal - $verCap) more" }
+
 # --- Report ------------------------------------------------------------------
 Write-Output "[verify-checkpoint] $ckPath"
 Write-Output "[verify-checkpoint] paths checked: $checked"
@@ -364,6 +406,7 @@ if ($prompts.Count -gt 0) { Write-Output '-- STALENESS PROMPTS (dispositioned --
 if ($staleFailures.Count -gt 0) { Write-Output '-- STALENESS FAILURES (exit 2 until each bullet is re-confirmed with [kept YYYY-MM-DD: reason] or pruned):'; $staleFailures | ForEach-Object { Write-Output "  $_" } }
 if ($tagPrompts.Count -gt 0) { Write-Output '-- TAG PROMPTS (not failures -- gate + complexity pair on every Open-threads bullet, four-run order):'; $tagPrompts | ForEach-Object { Write-Output "  $_" } }
 if ($attrPrompts.Count -gt 0) { Write-Output '-- ATTRIBUTION PROMPTS (not failures -- every verdict names its author + date; live sections only):'; $attrPrompts | ForEach-Object { Write-Output "  $_" } }
+if ($verPrompts.Count -gt 0) { Write-Output '-- VERIFIED-CLAIM PROMPTS (not failures -- a Status/Key decisions line saying verified/tested/green/passes/confirmed names what was run and when):'; $verPrompts | ForEach-Object { Write-Output "  $_" } }
 if ($jargonHits.Count -gt 0) { Write-Output '-- JARGON PROMPTS (not failures -- fine if already glossed in the same breath):'; $jargonHits | ForEach-Object { Write-Output "  $_" } }
 if ($defects.Count -gt 0 -or $staleFailures.Count -gt 0) {
     $why = @()

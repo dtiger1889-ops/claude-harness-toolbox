@@ -49,6 +49,16 @@ if (-not (Test-Path -LiteralPath $Checkpoint)) {
   exit 1
 }
 
+# Resolve to an absolute path before anything else touches it. Two reasons:
+# (1) Split-Path -Parent on a bare filename ('CHECKPOINT.md') returns '', so the archive
+#     Join-Path on the over-cap branch throws on an empty string.
+# (2) Silent and worse: PowerShell's $PWD and .NET's [Environment]::CurrentDirectory are two
+#     separate "current directories" and can diverge (a Push-Location moves $PWD only).
+#     Every read/write below uses [System.IO.File]:: directly, so a relative -Checkpoint
+#     could stamp and rewrite a DIFFERENT file of the same name in another directory.
+#     Resolve-Path is a PowerShell cmdlet and uses $PWD correctly.
+$Checkpoint = (Resolve-Path -LiteralPath $Checkpoint).Path
+
 # Four-run sort of Open threads BEFORE the stamp (adopted after a hand-sort vs script-sort
 # A/B): order is produced at every close, never maintained by hand. The sorter
 # only reorders top-level bullets that carry the [owner]/[agent] + [low]/[high] pair,
