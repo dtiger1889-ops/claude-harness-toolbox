@@ -27,7 +27,7 @@ Inside any Claude Code session, run:
 ```
 
 The first command registers this repository as a plugin marketplace; the second installs
-the plugin from it. That gives you all twelve skills as `/slash` commands and wires the
+the plugin from it. That gives you all thirteen skills as `/slash` commands and wires the
 hooks automatically — no hand-merging a block into `settings.json`, and no absolute paths
 to edit, because the plugin resolves its own scripts.
 
@@ -88,6 +88,7 @@ Copy any folder into `~/.claude/skills/<name>/`. Each becomes a `/slash` command
 | `prevent` | `/prevent`: when a documented rule got violated because it wasn't in Claude's read path: fix the slip, find the knowledge, diagnose why it missed, and move it to where the failing workflow will actually read it. If you build only one skill, build this one. |
 | `outside` | `/outside`: one cheap external-grounding pass before committing to an approach: shipped-solutions sweep, sibling-project sweep, notes check; verdict-first report with exactly one next action. The "did someone already build this?" gear the rest of the suite lacks. |
 | `grill-me` | `/grill-me`: interviews you in 2-3 rounds of numbered questions before building anything new, skips whatever `CHECKPOINT.md` / `CLAUDE.md` already answer, asks whether the build should fail open or fail closed on input it didn't create, and writes a Build spec to a file with a `Grilled:` line so the next session builds from it instead of re-asking. Idea from Matt Pocock's [grill-me](https://github.com/mattpocock/skills), by way of Ruben Hassid's adaptation. |
+| `log` | `/log`: writes a finding the last answer produced (a proof, a correction, a small decision) into the doc that already owns it, since none of that is resume-state and `/checkpoint` would never save it. Also files the session's own rule-breaking in an append-only lapse ledger (JSON Lines, one record per mistake) through `log_lapse.ps1`: the script numbers the record, reads the model and effort from the session transcript instead of asking the model, and flags a likely repeat before appending. A repeat asks for a stronger general rule for that family of mistake, not a new rule for the one incident. `ledger-template.md` starts a ledger. **Requires `pwsh` 7+ or PowerShell 5.1+.** |
 | `prove` | `/prove`: extracts every factual claim from the last response and verifies each against files first, then the web; per-claim Confirmed / Wrong / Unverified with citations. |
 | `redteam` | `/redteam`: one adversarial pass that assumes the target is wrong and hunts the fatal flaw. The cheap middle gear between a single-shot answer and `/fanout`. |
 | `dumb` | `/dumb`: "that was wrong or lazy, fix it." Fires on wrongness and on laziness (punting, offering instead of doing, half-answers). Forbids defending the previous response, forces a one-line honest diagnosis plus the actual fix, and ends by writing the correction down so it is not paid for twice. |
