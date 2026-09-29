@@ -9,7 +9,7 @@
     {
       "name": "claude-harness-toolbox",
       "source": "./",
-      "description": "A tested harness for durable work across coding agents: CLAUDE.md/CHECKPOINT.md state files, an orientation gate and other hooks, and eleven skills that encode the conventions so you never re-explain them.",
+      "description": "A tested harness for durable work across coding agents: CLAUDE.md/CHECKPOINT.md state files, an orientation gate, an interview-before-you-build gate and other hooks, and twelve skills that encode the conventions so you never re-explain them.",
       "category": "workflow",
       "keywords": [
         "harness",

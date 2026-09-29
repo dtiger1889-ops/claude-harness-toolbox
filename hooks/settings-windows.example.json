@@ -53,6 +53,25 @@
             "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\orient_gate.ps1\""
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\grill_gate.ps1\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\grill_gate.ps1\""
+          }
+        ]
       }
     ]
   }
