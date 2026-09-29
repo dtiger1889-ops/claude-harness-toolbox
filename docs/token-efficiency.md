@@ -1,6 +1,6 @@
 # Token efficiency
 
-Every word Claude reads costs tokens, and tokens are money or rate-limit headroom. These
+Every word the agent reads costs tokens, and tokens are money or rate-limit headroom. These
 are the habits that keep sessions cheap without sacrificing quality. (Several are
 enforced by the installed workspace rulebook; this file is the why.)
 

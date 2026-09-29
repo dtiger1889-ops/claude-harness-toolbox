@@ -11,13 +11,13 @@ raw per-trial data, and the benchmark itself — is published at
 
 | Task shape | Effect | Why |
 |---|---|---|
-| Trivial or pre-oriented prompt (the prompt names the file/path) | **Harness HURTS** (+35% to +136% output tokens, +64% to +80% cache reads) | Claude runs the startup ritual, finds no useful state, and burns tokens narrating it. |
+| Trivial or pre-oriented prompt (the prompt names the file/path) | **Harness HURTS** (+35% to +136% output tokens, +64% to +80% cache reads) | The agent runs the startup ritual, finds no useful state, and burns tokens narrating it. |
 | Structured single-project tasks | Neutral | Orientation cost ≈ orientation benefit. |
-| Exploratory multi-project tasks (Claude must pick which folders matter) | **Harness WINS BIG** (−25% to −45% on read-side metrics) | Per-project CLAUDE.md lets Claude classify folders without reading them. Compounds into less exploratory chatter. |
+| Exploratory multi-project tasks (the agent must pick which folders matter) | **Harness WINS BIG** (−25% to −45% on read-side metrics) | Per-project CLAUDE.md lets the agent classify folders without reading them. Compounds into less exploratory chatter. |
 
 ## Practical rules that fall out of this
 
-1. **Don't make Claude self-judge "am I oriented?" — let read-only work be free and let a
+1. **Don't make the agent self-judge "am I oriented?" — let read-only work be free and let a
    gate enforce the rest.** Read-only operations never need orientation, so a genuinely
    pre-oriented prompt pays zero ritual tax automatically. For state-changing actions,
    enforce "read CHECKPOINT first" structurally with the orientation gate, not with a
@@ -36,7 +36,7 @@ raw per-trial data, and the benchmark itself — is published at
    adds latency even when it saves downstream work). Tokens cost money; wall-clock costs
    patience. Two different axes.
 5. **The harness doesn't relieve context-window pressure.** Peak context was unaffected
-   across all 154 trials. It compresses what Claude *seeks out*, not what Claude needs
+   across all 154 trials. It compresses what the agent *seeks out*, not what the agent needs
    in flight. If you hit compaction, that's a separate problem the harness won't solve.
 
 ## The clearest winning regime

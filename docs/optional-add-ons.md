@@ -26,7 +26,7 @@ project's actionable scope.
   separate mode the user triggers explicitly.
 
 Why it's worth having: it keeps unstructured thinking out of project CHECKPOINTs, and
-keeps Claude from reflexively turning every musing into an action item. Some thoughts
+keeps the agent from reflexively turning every musing into an action item. Some thoughts
 are just thoughts.
 
 ## A Cowork sibling (for users of Anthropic's Cowork app)
