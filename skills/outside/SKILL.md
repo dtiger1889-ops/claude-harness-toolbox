@@ -61,7 +61,11 @@ Order is fixed:
    with its strongest source (link or file:line). Max 5 items total (a cap on what the report SHOWS, never on how much the sweeps find or consider; adapted from ayghri/i-have-adhd rule 9, 2026-09-14). Adopt/adapt beats
    greenfield; recommending greenfield requires saying what WAS found and why it doesn't
    fit.
-3. **One next action, last line.** Exactly one.
+3. **One next action, last line.** Exactly one. **When the args carry a concrete complaint
+   about the user's own artifact (a page is cut off, a file is wrong), that action is RUN in
+   the same turn and the report says what changed**; if it can't be run, the line says why.
+   A report that ends on an un-run fix for the user's complaint has not finished (this
+   lapse repeated before the rule was written down).
 
 Source links go inline in the report; write a findings doc only if this feeds a real
 milestone.

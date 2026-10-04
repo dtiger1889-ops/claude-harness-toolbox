@@ -33,6 +33,9 @@ attack. Skip only when the target is genuinely project-free.
    measurement) that would settle whether the fatal flaw is real, so the attack ends in
    evidence rather than a debate.
 5. **Verdict** -- survives / needs revision / abandon, plus the single most important fix.
+   **When the target is a file this session wrote and the verdict names the fix, apply it in
+   the same turn and report the change** -- never close with "say the word and I'll revise".
+   Someone else's artifact, or a plan the user has not yet seen, stays verdict-only.
 
 ## Rules
 - Do not hedge. Do not soften to be agreeable -- not-agreeing is the entire point.

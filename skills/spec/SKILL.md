@@ -76,7 +76,11 @@ No chat preamble and no capability narration; produce the file, then confirm in 
    the answer, so say that and skip the block. The Lose line names what breaks or what they
    give up or keep maintaining, in their terms, not the model's. The same shape applies
    when REVIEWING a spec's open questions: a review that answers a bare question with a
-   bare pick has repeated the failure this skill exists to kill.
+   bare pick has repeated the failure this skill exists to kill. **A Gain that claims an
+   option fixes a failure names the record it was checked against.** If the project keeps
+   an issue or failure log, grep it for the failure class each option targets and cite the
+   matching entry in that option's Gain line, or write "no entry found in <log>". An
+   unchecked "this fixes X" is how a spec ranks work against problems nobody has recorded.
 7. **Point at it** in the same turn: add or refresh a one-line Open-threads bullet in the
    project's CHECKPOINT.md naming the spec path, what it decides or builds, and what gates
    it (usually `[owner] [gates: build]` while proposed). A spec with no CHECKPOINT

@@ -13,6 +13,10 @@
 # Why two halves: the reminder alone is advice a model can skip; the write block is what makes it stick.
 # State: %TEMP%\claude_grill_gate\<session>.{pending,advised,blocked,done}; files older than 7 days are swept.
 # Fails OPEN (exit 0) on any error so a gate bug can never wedge a session.
+# Shared re-issue with orient_gate.ps1: both gates block once and both say "re-issue this exact call". The
+# .blocked file holds the blocked call's key (tool|path). When orient_gate's flag holds this exact call's key and
+# was written 2-120 seconds ago, the call in hand is orient_gate's re-issue, so this gate passes it with its
+# reminder as additionalContext and spends its once-flag instead of blocking the same call a second time.
 
 try {
     $raw = [Console]::In.ReadToEnd()
@@ -92,12 +96,29 @@ try {
     if ($fp -match '(?i)CHECKPOINT\.md$') { exit 0 }
     if ($fp -match '(?i)[\\/](scratchpad|Temp|tmp)[\\/]') { exit 0 }
 
-    New-Item -ItemType File -Path $blocked -Force | Out-Null
+    $key = $tool + '|' + $fp
+    if ($key.Length -gt 400) { $key = $key.Substring(0, 400) }
     $why = ''
     try { $why = (Get-Content -LiteralPath $pending -ErrorAction SilentlyContinue | Select-Object -First 1) } catch {}
     $msg = "[grill-gate] BLOCKED ONCE: this session opened with a build-kickoff prompt (" + $why + ") and no interview has happened -- no AskUserQuestion call and no grill-me Skill call in the transcript. " +
            'Grill BEFORE you build. Invoke the grill-me skill now: 2-3 rounds of 4-6 numbered questions (AskUserQuestion for short-list answers), skipping anything CHECKPOINT.md / CLAUDE.md already answer, then write the Build spec into a spec file or CHECKPOINT.md and build. ' +
            'If you have genuinely judged this an edit/fix/continuation, an unattended session, or the user said to skip it, re-issue this exact call -- the gate fires only once per session.'
+
+    # Re-issue of a call orient_gate just blocked -> pass it with the reminder instead of a second block.
+    $orientFlag = Join-Path $env:TEMP ('orient_gate_' + ($sid -replace '[^A-Za-z0-9_-]', '_') + '.flag')
+    if (Test-Path -LiteralPath $orientFlag) {
+        $age = ((Get-Date) - (Get-Item -LiteralPath $orientFlag).LastWriteTime).TotalSeconds
+        $other = ''
+        try { $other = ([IO.File]::ReadAllText($orientFlag)).Trim() } catch {}
+        if ($age -ge 2 -and $age -le 120 -and $other -eq $key) {
+            Set-Content -LiteralPath $blocked -Value $key -Encoding UTF8
+            $ctx = $msg.Replace('[grill-gate] BLOCKED ONCE: ', '[grill-gate] NOT BLOCKED (orient_gate already stopped this call once): ')
+            Write-Output (@{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; additionalContext = $ctx } } | ConvertTo-Json -Compress -Depth 4)
+            exit 0
+        }
+    }
+
+    Set-Content -LiteralPath $blocked -Value $key -Encoding UTF8
     [Console]::Error.WriteLine($msg)
     exit 2
 }
