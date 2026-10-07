@@ -3,7 +3,7 @@ name: dumb
 description: The user is telling you the last thing you said or did was wrong, lazy, or
   missed the point -- and you need to FIX it, not defend it. Use when the user types /dumb
   or says "that was dumb" / "that was stupid" / "stop being lazy" / "fix it" about your
-  previous response, AND on the cheap laziness signals that arrive first: "why am I still
+  previous response, AND on the cheap laziness signals that arrive first -- "why am I still
   seeing this" / "why didn't you" / "you said you did" / "that's not done" / "did you
   actually" / "just do it" / "you skipped". Re-examine your immediately previous
   response/action assuming it was wrong, name the real failure without rationalizing, and

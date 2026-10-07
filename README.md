@@ -29,7 +29,7 @@ Inside any Claude Code session, run:
 ```
 
 The first command registers this repository as a plugin marketplace; the second installs
-the plugin from it. That gives you all thirteen skills as `/slash` commands and wires the
+the plugin from it. That gives you all fourteen skills as `/slash` commands and wires the
 hooks automatically — no hand-merging a block into `settings.json`, and no absolute paths
 to edit, because the plugin resolves its own scripts.
 
@@ -98,6 +98,7 @@ Copy any folder into `~/.claude/skills/<name>/`. Each becomes a `/slash` command
 | `breakdown` | `/breakdown`: convergent, action-first decomposition: real goal, smallest next action, the one blocking decision, collapsed plan, first trap. |
 | `plain` | `/plain`: re-explains a dense/jargon response in plain generous English, resolving every invented code by looking it up (never guessing). |
 | `spec` | `/spec`: writes lean specs with a mandatory Closeout section and forces the archive/promote step when the work ships, so dead specs stop piling up looking live. |
+| `spinoff` | `/spinoff`: moves a side topic into its own new session, started from a short brief of just that topic instead of a copy of the whole conversation, so the session you were in stays on topic and stops growing. Uses your own session launcher if you have one, otherwise `claude --bg`. The new session messages a short result back only when the outcome changes the original session's work. |
 | `necromancy` | `/necromancy`: recovers a session that died before CHECKPOINT.md was written: a deterministic PowerShell script digests the on-disk session JSONL (anchors: first ask, user decisions, files written, commands, commits, errors) so the model never reads multi-MB raw transcripts. Pattern adapted from [ryanthedev/herderp](https://github.com/ryanthedev/herderp)'s session-necromancy. |
 
 ### Hooks (`hooks/`)
