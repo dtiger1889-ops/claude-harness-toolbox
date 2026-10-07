@@ -25,7 +25,7 @@ Inside any Claude Code session, run:
 ```
 
 ```
-/plugin install claude-harness-toolbox@harness-toolbox
+/plugin install mackforge-harness-toolbox@harness-toolbox
 ```
 
 The first command registers this repository as a plugin marketplace; the second installs

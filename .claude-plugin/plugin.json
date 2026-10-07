@@ -1,12 +1,12 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
-  "name": "claude-harness-toolbox",
-  "displayName": "Claude Code Harness Toolbox",
+  "name": "mackforge-harness-toolbox",
+  "displayName": "Mackforge Harness Toolbox",
   "version": "1.0.0",
   "description": "A tested harness for durable work across coding agents: CLAUDE.md/CHECKPOINT.md state files, an orientation gate, an interview-before-you-build gate and other hooks, and fourteen skills that encode the conventions so you never re-explain them.",
   "author": {
-    "name": "dtiger1889-ops",
-    "url": "https://github.com/dtiger1889-ops"
+    "name": "Daniel Mack",
+    "url": "https://mackforge.dev"
   },
   "homepage": "https://github.com/dtiger1889-ops/claude-harness-toolbox",
   "repository": "https://github.com/dtiger1889-ops/claude-harness-toolbox",
