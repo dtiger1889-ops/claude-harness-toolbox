@@ -5,6 +5,8 @@ A tested, empirically grounded harness for durable work across coding agents, wi
 file-based state and checkpoint patterns work with Codex and other file-capable agents
 too; its hooks and settings remain Claude-specific.
 
+![Claude Code Harness Toolbox: one steady hand at the center, linked to seven tool symbols for the toolbox's complementary skills](assets/toolbox.png)
+
 **The core problem:** coding agents have finite, session-bound context.
 Without a harness, every session starts from scratch, re-reading the same files, with no
 reliable way to know what was done, what's open, or where to pick up. This toolbox is the
