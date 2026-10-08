@@ -27,26 +27,25 @@ where you keep your harness or config; a bug in another app -> that app's folder
 owner -> this session's own folder. Say which folder you picked.
 
 ## 3. Write the brief (only the side topic)
-If the `ListAgents` tool exists, run it once: its first line is this session's own name.
 Write the brief to a scratch or temp folder as `spinoff-<UTC timestamp>-<slug>.md`:
 
 ```
 Spinoff: <topic in at most 6 words>
 
-Started by /spinoff from the session "<own name>" in <this folder>, so the user can work
-this side topic without growing that session. Read the project's state files the usual way,
-then pick up at "Open question".
+Read the project's state files, then start at "Open question".
 Asked: <what the user asked, their words where they matter>
 Known so far: <facts found, with file paths, commands, tool names, error text>
 Decided: <anything settled, and who decided it>; or "nothing yet"
 Open question: <the one thing to work on first>
-Report back: <either "When settled, send '<own name>' a 1-3 line result with SendMessage,
-because <what it changes there>" or "Nothing goes back to the original session.">
+[Report back: When settled, send '<own name>' a 1-3 line result with SendMessage.]
 ```
 
 Keep it under ~300 words. Leave out the main topic; include everything the new session needs,
-because it sees nothing else. Choose "Report back" only when the outcome changes what this
-session is doing.
+because it sees nothing else. Write a reason only when it rules out an action the new session
+would otherwise take; never explain why this session handed the topic off. Add the Report back
+line only when the outcome changes what this session is doing; then, if the `ListAgents` tool
+exists, run it once for this session's own name (its first line). Without that line, nothing
+goes back.
 
 ## 4. Start the session
 - **Your setup has its own session launcher** (a terminal deck, a tmux script; your CLAUDE.md
