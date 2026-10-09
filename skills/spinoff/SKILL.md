@@ -10,13 +10,6 @@ session is about Y. Every later turn re-reads all of it. `/branch` and `/fork` d
 because they copy the whole conversation into the new session. This skill starts the new
 session from a short brief instead, so both sessions stay small.
 
-Copy this checklist into your response and tick it as you go:
-- [ ] 1. Topic named (which thread of this chat is the side topic)
-- [ ] 2. Folder picked
-- [ ] 3. Brief written to a file
-- [ ] 4. Session started (or the brief handed over)
-- [ ] 5. One-line reply; topic dropped here
-
 ## 1. Name the side topic
 The args name it, or it is the most recent detour away from this session's main work. If two
 detours are equally plausible, ask once; otherwise do not ask.
@@ -30,7 +23,7 @@ owner -> this session's own folder. Say which folder you picked.
 Write the brief to a scratch or temp folder as `spinoff-<UTC timestamp>-<slug>.md`:
 
 ```
-Spinoff: <topic in at most 6 words>
+<topic in at most 6 words>
 
 Read the project's state files, then start at "Open question".
 Asked: <what the user asked, their words where they matter>
@@ -51,7 +44,7 @@ goes back.
 - **Your setup has its own session launcher** (a terminal deck, a tmux script; your CLAUDE.md
   says so): use it, passing the brief as the first message.
 - **Otherwise:** from the chosen folder, run
-  `claude --bg --name "<folder>: Spinoff: <topic>" "$(cat <brief path>)"`.
+  `claude --bg --name "<folder>: <topic>" "$(cat <brief path>)"`.
   It prints a short id. The user opens the session with `claude attach <id>` or from
   `claude agents`. The folder must already be trusted (Claude Code refuses an untrusted one
   and says so).
