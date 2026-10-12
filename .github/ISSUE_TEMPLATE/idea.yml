@@ -1,0 +1,22 @@
+name: Idea
+description: A new skill, hook or rule, or a change to an existing one.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What went wrong in a real session, or what keeps costing you time or context.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you'd change
+      description: The skill, hook or rule you have in mind, and where it would live.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Anything you already tried

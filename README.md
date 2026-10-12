@@ -1,5 +1,7 @@
 # Claude Code Harness Toolbox
 
+[![Listed on ClaudePluginHub](https://www.claudepluginhub.com/badge/dtiger1889-ops-mackforge-harness-toolbox)](https://www.claudepluginhub.com/plugins/dtiger1889-ops-mackforge-harness-toolbox?ref=badge)
+
 A tested, empirically grounded harness for durable work across coding agents, with
 [Claude Code](https://claude.com/claude-code) as the reference implementation. Its
 file-based state and checkpoint patterns work with Codex and other file-capable agents
@@ -78,7 +80,7 @@ installing session does not pay to parse them.
 
 ## What's inside
 
-`harness_me.txt` — the machine-oriented installer described in Quick start above.
+`harness_me.txt` — the machine-oriented installer described in "The guided install" above.
 
 ### Skills (`skills/<name>/`)
 

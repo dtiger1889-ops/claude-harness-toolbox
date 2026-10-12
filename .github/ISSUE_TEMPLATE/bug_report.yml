@@ -1,0 +1,39 @@
+name: Bug report
+description: A skill or hook did something wrong, or didn't work at all.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Take out personal details before you paste anything (names, usernames in paths, private project names, tokens).
+  - type: input
+    id: component
+    attributes:
+      label: Which skill or hook
+      description: The skill name or the hook file name.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Agent, version and operating system
+      description: The agent you ran it in, its version, and your OS.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: Include any error text or hook output.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest sequence that shows the problem.
