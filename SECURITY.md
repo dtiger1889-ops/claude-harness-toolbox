@@ -6,7 +6,7 @@ The hooks in this toolbox run as scripts on your own machine every time your age
 
 Use GitHub's private reporting: the **Security** tab of this repository, then **Report a vulnerability**. Please don't open a public issue for it.
 
-Include which hook or script is affected, your operating system, and the steps that show the problem. You'll get a reply within a week, and a fix ships as a normal release once it's ready.
+Include which hook or script is affected, your operating system, and the steps that show the problem. A fix ships as a normal release once it's ready.
 
 ## What counts
 
