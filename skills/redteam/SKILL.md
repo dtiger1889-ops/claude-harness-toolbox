@@ -1,44 +1,18 @@
 ---
 name: redteam
-description: One focused adversarial pass on a claim, plan, or answer (the cheap middle gear between a single-shot answer and the ~7x-token /fanout). Use ONLY when the user types /redteam or says "push back on this" / "red-team this" / "stress-test this". Fires ONE adversarial pass that assumes the target is wrong and hunts the fatal flaw. Do NOT use for 5-way ideation (that is /fanout) or for convergent fact-checking with one obvious answer.
+description: Runs one adversarial review of a claim, plan, or answer. Use only for /redteam, "push back on this", "red-team this", or "stress-test this". Identifies failure mechanisms and the cheapest way to test them. For broader ideation use fanout; for source verification use prove.
 ---
 
-# redteam -- single-frame adversarial pass
+# Red-team review
 
-Grounded in the maintainer's session-transcript crawl: the recurring friction is "the model
-commits to one answer inline and the user has to push back." This skill front-runs that
-push-back. It is ONE frame (adversarial), not five -- so it costs roughly 1x, far less
-than /fanout.
+1. Identify the target from the supplied passage, file, or previous answer. Ask once if ambiguous.
+2. Read a referenced artifact and its project's current state and instructions to EOF. Include existing decisions and constraints in the review.
+3. Attempt to disprove the target. Report:
+   - **Strongest objection:** the most consequential plausible failure, with its mechanism and evidence.
+   - **Critical assumption:** what must hold for the target to work.
+   - **Alternative explanation:** if supported; omit rather than invent a decoy.
+   - **Cheapest disproof:** a concrete check that could settle the objection.
+   - **Verdict:** survives, needs revision, or abandon, with the most important fix.
+4. If the target is a file this session wrote and the fix is within the authorized scope, apply it and report the change. Otherwise deliver the review without editing someone else's artifact.
 
-## Step 1 -- get the target
-The claim / plan / answer to attack, from an @-mention, a path, or the prior turn. If it is
-ambiguous which claim to attack, ask -- once.
-
-## Step 1.5 -- orient if the target is a project artifact (mandatory)
-If the target is (or names) a file under a project folder -- a spec, plan, decision doc,
-code file -- **read that project's `CHECKPOINT.md` to EOF first** (and its `CLAUDE.md` if
-not already surfaced). The SessionStart receipt is a byte/line count, NOT the file; a
-preview is not a read. Attacking a plan blind to project state manufactures flaws the
-CHECKPOINT already resolved and misses the real constraints (deadlines, funding/sequencing
-gates, what's been tried/rejected) that actually sink it. Fold those constraints into the
-attack. Skip only when the target is genuinely project-free.
-
-## Step 2 -- attack it. Assume it is wrong. Output:
-1. **Strongest case it's wrong** -- the most likely fatal flaw, with the mechanism (not a
-   vague "it might not scale" but how it actually breaks).
-2. **Silent assumption** -- the load-bearing thing it takes for granted that, if false,
-   sinks it.
-3. **The decoy** -- if the obvious answer is a trap, name the real one.
-4. **Cheapest disproof** -- the quickest concrete check (a command, a file read, a
-   measurement) that would settle whether the fatal flaw is real, so the attack ends in
-   evidence rather than a debate.
-5. **Verdict** -- survives / needs revision / abandon, plus the single most important fix.
-   **When the target is a file this session wrote and the verdict names the fix, apply it in
-   the same turn and report the change** -- never close with "say the word and I'll revise".
-   Someone else's artifact, or a plan the user has not yet seen, stays verdict-only.
-
-## Rules
-- Do not hedge. Do not soften to be agreeable -- not-agreeing is the entire point.
-- If after a genuine attempt the target actually holds, say so plainly and say why; do not
-  manufacture a flaw to look useful.
-- One pass (n=1). For 5-frame breadth, that is /fanout.
+Run one pass. Be direct, distinguish evidence from hypotheses, and say when the target survives. Do not manufacture flaws or claim an unrun check proves the verdict.

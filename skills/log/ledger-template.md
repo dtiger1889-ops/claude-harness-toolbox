@@ -1,7 +1,7 @@
 # <Ledger name> -- lapse ledger
 
 Records live in `<name>.jsonl` beside this file, one JSON object per line. Append only with
-`~/.claude/skills/log/log_lapse.ps1`; never edit the `.jsonl` by hand.
+the bundled `log_lapse.ps1` from the installed log skill directory; never edit the `.jsonl` by hand.
 
 ## What this ledger covers
 <!-- rule_lapses: general conduct rules from CLAUDE.md or hooks. Fields: -Session -Rule.

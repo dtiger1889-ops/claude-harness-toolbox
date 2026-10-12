@@ -1,52 +1,17 @@
 ---
 name: plain
-description: Re-explain a dense, jargon-loaded, or code-stuffed response in plain, generous
-  English. Use when the user types /plain or says "say that in plain english" / "english
-  please" / "de-jargon this" / "unpack that" / "explain that like a normal person".
-  Targets the PREVIOUS assistant message by default, or a pasted/@-mentioned block.
-  Expands every invented code/tag/acronym into people-words by LOOKING IT UP (never
-  guessing), keeps ALL the substance, and introduces NO new shorthand. This is the
-  on-demand enforcement of a standing plain-language rule.
+description: Re-expresses a dense response in plain English while preserving its substance. Use for /plain, "say that in plain English", "de-jargon this", "unpack that", or "explain that like a normal person". Targets the previous assistant message unless the user supplies another passage.
 ---
 
-# plain -- translate a dense/jargon response into plain English
+# Plain English
 
-The standing rule this enforces: understandable, digestible English in chat -- every
-self-invented code glossed in plain words, nothing buried under process narration.
-It keeps getting violated -- responses come back stuffed with filing codes (`F027`, `B13`,
-`PTT`, a `def_hash`...), unexpanded acronyms, and compressed noun-stacks that are a wall
-to read. This skill is the fix: take that response and SAY IT AGAIN in plain,
-conversational, generous English.
+1. Identify the target passage; ask only if the target is ambiguous.
+2. Look up unfamiliar project codes, tags, acronyms, and phase names in their source files. Do not guess. If a meaning is unavailable, say that explicitly.
+3. Re-express all the substantive content in ordinary sentences. Expand compressed clauses and define unavoidable technical terms at first use.
+4. Use short paragraphs or a clear list. Preserve qualifications, uncertainty, and actionable details; add no new analysis or next steps.
 
-This is the ANTI-terse skill -- the opposite of /breakdown. Length is fine; losing meaning
-is not.
+Example with fictional terminology:
+- Dense: "The F027 gate blocks the B13 rung until the file hashes reconcile."
+- Plain: "A check prevents the next build step until the two copies of the file match. They currently differ."
 
-## What to translate
-Default target: the immediately previous assistant message. If the user pasted text or
-@-mentioned a file/block, translate that instead. If it is ambiguous which, ask once.
-
-## How to do it
-1. **RESOLVE every code, tag, and acronym to its real meaning -- do NOT guess.** When a
-   filing code / phase name / gate name / hash appears, look it up in the project files
-   (e.g. `findings.md`, `CHECKPOINT.md`, the relevant spec) and state what it actually IS
-   in people-words. If you genuinely cannot find what a code refers to, say
-   "I couldn't find what `X` refers to" -- never bluff a meaning.
-2. **Re-express, don't summarize.** Keep ALL the substance. This is a translation, not a
-   trimmed recap; dropping detail to be shorter is the failure mode.
-3. **Unpack** compressed noun-stacks and nested clauses into short, ordinary sentences.
-4. **Introduce NO new shorthand** -- no codes, no project jargon. If a technical term is
-   genuinely unavoidable, define it inline the first time you use it.
-5. **Structure for reading** -- short paragraphs or a plain list, not a block.
-
-## Worked example
-- **Bad:** "The F027 gate blocks the B13 rung until the def_hash reconciles."
-- **Good:** "One check (the project calls it F027) won't let the build move on until two
-  copies of the file match. Right now they don't."
-- Why: the bad version swapped one shorthand for another and left the reader no better off.
-
-## Rules
-- Plain, conversational English, structured to be digestible: answer first, short
-  paragraphs, expansive enough to define every term -- never a wall of text.
-- Never invent a meaning for a code you couldn't resolve.
-- Don't add new analysis, opinions, or next steps -- just make the existing content legible.
-  If the user wants more, they'll ask.
+Use enough space to explain the meaning; brevity must not erase it.
