@@ -23,7 +23,7 @@ Consider, as relevant:
 - Platform, integrations, data source, format, and volume.
 - Budget, deadline, usage limits, and where the work lives.
 - Failure handling and how uncertainty reaches the user.
-- Taste references and rejection criteria.
+- Taste references and rejection criteria; the other half: who or what, other than the user or the model, shows the result is good (an outside judge).
 - Maintenance, ownership, and delegation preferences.
 
 For unrecognized inputs, clarify whether to produce partial output with flags or stop. If nobody can answer, default to flagged partial output for drafting and triage; stop before uncertain sends, payments, deletions, publication, or overwrites. Record the assumption.
@@ -50,6 +50,7 @@ Use the project's existing spec or state convention:
 - Constraints: <platform, location, cost, deadline>
 - Failure behavior: <partial output or stop; how flags are delivered>
 - Taste references: <if relevant>
+- Outside judge: <who or what, other than the user or the model, shows it is good; or "none named">
 - Assumptions: <unresolved interpretations>
 - Agreed: <date and source of agreement; or proposed>
 ```

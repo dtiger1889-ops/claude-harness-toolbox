@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "mackforge-harness-toolbox",
   "displayName": "Mackforge Harness Toolbox",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A tested harness for durable work across coding agents: CLAUDE.md/CHECKPOINT.md state files, an orientation gate, an interview-before-you-build gate and other hooks, and fourteen skills that encode the conventions so you never re-explain them.",
   "author": {
     "name": "Daniel Mack",

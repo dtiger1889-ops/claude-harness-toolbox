@@ -34,9 +34,10 @@ Give one critic the problem, constraints, and all frame outputs. Ask it to:
 - Combine distinct failure mechanisms without duplication.
 - Develop the strongest three directions: mechanism, traps, riskiest assumption, cheapest test, and first concrete step.
 - Recommend a direction and identify the uncertainty that could change it.
+- Spread: name each frame's single highest-rated idea in one line, labelled "chance another AI gives this: N%", ordered high to low so the lowest comes last.
 
 ## 4. Present and record
 
-Present the strongest directions, distinct traps, and recommendation. Explain meaningful convergence; do not dump every raw output.
+Present the critic's spread first (the five one-line ideas with their percentages, lowest last), so an idea only one frame reached is not buried under the converged ones; then the strongest directions, distinct traps, and recommendation. Explain meaningful convergence; do not dump every raw output.
 
 Keep raw frame output ephemeral unless the user requests it. Consider durable conclusions through log: save reusable findings in their existing owner document, or report "nothing to log". Run once per invocation; a second fanout needs a new request.

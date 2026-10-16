@@ -22,7 +22,7 @@ For each unresolved choice the user must make, include:
 
 - The question and necessary context.
 - Two or three real options, each with gains, losses, implementation cost, and maintenance cost.
-- A recommendation and the condition that would change it.
+- A recommendation, the one piece of evidence it rests on (file and line, command output, URL, or the user's own words with their date) or "no evidence beyond judgment", and the condition that would change it. A recommendation with a confident reason and no source reads as a finding when it is a guess.
 
 Do not invent alternatives for a question with one answer. Support claims that an option fixes a failure with the relevant issue, test, or failure record; otherwise mark that claim unverified.
 
@@ -45,7 +45,7 @@ Owner / attribution: <who made decisions or recommendations>
 <for investigated decisions>
 ## Design
 ## Choices requiring the user's decision
-<options, gains, losses, costs, recommendation, reversal condition>
+<options, gains, losses, costs, recommendation, its evidence, reversal condition>
 ## Acceptance checks
 <observable success and relevant negative cases>
 ## Closeout

@@ -13,6 +13,8 @@ description: Runs one adversarial review of a claim, plan, or answer. Use only f
    - **Alternative explanation:** if supported; omit rather than invent a decoy.
    - **Cheapest disproof:** a concrete check that could settle the objection.
    - **Verdict:** survives, needs revision, or abandon, with the most important fix.
+
+   **Opinion mode**, only when the user gives their own opinion together with material ("here's what I think, here's the data"): do step 2 even if no file is named, so current project state outranks a stale excerpt. Replace the first three report items with the three strongest arguments against the opinion, each quoting the line of the material or project files that supports it, and use nothing from general knowledge; if the material supports fewer than three, give fewer and say so. Cheapest disproof and verdict stay. Any other target gets the ordinary report.
 4. If the target is a file this session wrote and the fix is within the authorized scope, apply it and report the change. Otherwise deliver the review without editing someone else's artifact.
 
 Run one pass. Be direct, distinguish evidence from hypotheses, and say when the target survives. Do not manufacture flaws or claim an unrun check proves the verdict.
