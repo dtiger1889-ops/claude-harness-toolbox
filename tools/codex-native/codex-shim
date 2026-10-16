@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Template for the bash `codex` shim. install_codex_native.ps1 replaces the two
+# placeholders with your Python interpreter and the full path of codex_native.py
+# (forward slashes) and writes the result into your shim folder as `codex`.
+# Desktop calls run Codex directly; SSH/session-0 headless calls use the desktop bridge.
+exec "@PYTHON@" "@BRIDGE@" "$@"

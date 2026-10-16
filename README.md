@@ -118,6 +118,12 @@ Copy the scripts into `~/.claude/hooks/` and merge the matching `settings-*.exam
 | `settings-*.example.json` | The SessionStart receipt + PreCompact reminder + PreToolUse hooks, wired for Windows and Mac/Linux. The Windows example also wires the optional security backstop and the `/log` reminder. For the by-hand install. |
 | `hooks.json` / `hooks-macos-linux.json` | The same wiring in plugin form, using the plugin's own root path so there is nothing to edit. `hooks.json` (Windows) is what the plugin loads; swap in `hooks-macos-linux.json` on Mac/Linux. |
 
+### Tools (`tools/`)
+
+| Tool | What it is |
+|---|---|
+| [`codex-native/`](tools/codex-native/codex-native.md) | **Native Codex bridge** (Windows, optional): makes headless `codex exec` / `review` / `app-server` calls work from SSH or Windows session 0, including tmux started over SSH, by relaying them to an on-demand task in your signed-in desktop session. Installer, launcher templates and tests included. |
+
 ### Docs (`docs/`)
 
 | Doc | What it is |
@@ -127,7 +133,7 @@ Copy the scripts into `~/.claude/hooks/` and merge the matching `settings-*.exam
 | `design-history.md` | A dated record of the public patterns reviewed, what this toolbox adopted or declined, and the choices it added. It is design history, not a current market survey. |
 | `when-it-pays-off.md` | The measured regime boundary in practical form: the three task-shape regimes, five rules of thumb that fall out of them, and the clearest winning regime. Read before installing if you're unsure the harness fits your work. |
 | `token-efficiency.md` | Operating habits that keep sessions cheap: model-tier principles (deliberately no model names), the sub-agent cost gate, and file/reading habits like front-loading resume-critical sections. |
-| `optional-add-ons.md` | Concept sketches beyond the default install: a capture-first rants/musings folder and a Cowork sibling workspace layout. |
+| `optional-add-ons.md` | Concept sketches beyond the default install: a capture-first rants/musings folder and a Cowork sibling workspace layout, plus a pointer to the shipped Codex bridge. |
 
 ### Templates (`templates/`)
 

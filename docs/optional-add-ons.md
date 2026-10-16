@@ -29,6 +29,13 @@ Why it's worth having: it keeps unstructured thinking out of project CHECKPOINTs
 keeps the agent from reflexively turning every musing into an action item. Some thoughts
 are just thoughts.
 
+## Native Codex from SSH on Windows (shipped)
+
+Unlike the sketches here, this one is an implementation. If you call the Codex CLI from
+an SSH login or a tmux started over SSH on Windows, its sandbox fails in session 0; the
+bridge in [`tools/codex-native/`](../tools/codex-native/codex-native.md) relays those
+headless calls to your signed-in desktop session.
+
 ## A Cowork sibling (for users of Anthropic's Cowork app)
 
 If you also use Cowork (Anthropic's scheduled-task / async workspace app), give it its

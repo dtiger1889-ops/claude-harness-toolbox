@@ -11,6 +11,9 @@ Thumbs.db
 .tmp.drivedownload/
 .tmp.driveupload/
 
+# Python bytecode from running the tool tests
+__pycache__/
+
 # Runtime artifacts the mover script creates next to itself (never ship these)
 skills/checkpoint/backups/
 skills/checkpoint/archive-changelog.log
