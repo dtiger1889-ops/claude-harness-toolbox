@@ -134,7 +134,17 @@ def preflight_args(cli, args, cwd):
     index = 0
     while index < len(args):
         arg = args[index]
-        if arg in ("-c", "--config", "-p", "--profile", "--enable", "--disable") and index + 1 < len(args):
+        if arg.startswith("--") and "=" in arg:
+            # Equals form (--cd=DIR, --config=K=V, --sandbox=MODE): same meaning as the split form.
+            name, value = arg.split("=", 1)
+            if name in ("--config", "--profile", "--enable", "--disable"):
+                overrides.append(arg)
+            elif name == "--cd":
+                cwd = os.path.abspath(os.path.join(cwd, value))
+            elif name == "--sandbox":
+                permission_profile = ":read-only" if value == "read-only" else ":workspace"
+            index += 1
+        elif arg in ("-c", "--config", "-p", "--profile", "--enable", "--disable") and index + 1 < len(args):
             overrides += args[index:index + 2]
             index += 2
         elif arg in ("-C", "--cd") and index + 1 < len(args):

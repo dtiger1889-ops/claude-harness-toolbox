@@ -105,6 +105,15 @@ class BridgeTests(unittest.TestCase):
         readonly = bridge.preflight_args('codex', ['exec', '-s', 'read-only'], r'C:\caller')
         self.assertEqual(readonly[readonly.index('--permission-profile') + 1], ':read-only')
 
+    def test_preflight_reads_equals_form_flags(self):
+        args = bridge.preflight_args('codex', ['exec', r'--cd=C:\target dir', '--config=windows.sandbox=mxc',
+                                             '--sandbox=read-only', '--profile=fast', 'do it'], r'C:\caller')
+        self.assertEqual(args[args.index('-C') + 1], r'C:\target dir')
+        self.assertIn('--config=windows.sandbox=mxc', args)
+        self.assertIn('--profile=fast', args)
+        self.assertEqual(args[args.index('--permission-profile') + 1], ':read-only')
+        self.assertNotIn('do it', args)
+
 
 if __name__ == '__main__':
     unittest.main()
