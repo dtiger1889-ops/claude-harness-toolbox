@@ -46,9 +46,9 @@ _SYSTEM32 = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32"
 SCHTASKS = str(_SYSTEM32 / "schtasks.exe")
 TASKKILL = str(_SYSTEM32 / "taskkill.exe")
 
-START_TIMEOUT = 30           # seconds from the request's creation that the caller waits for the desktop worker
-RELAUNCH_EVERY = 1           # seconds before the first task relaunch; each later gap doubles
-PREFLIGHT_TIMEOUT = 25       # seconds the sandbox probe may run before the call fails
+START_TIMEOUT = 120          # seconds from the request's creation that the caller waits for the desktop worker
+RELAUNCH_EVERY = 10          # seconds before the first task relaunch; each later gap doubles
+PREFLIGHT_TIMEOUT = 120      # seconds the sandbox probe may run before the call fails (a busy machine needs ~50)
 JOB_TIMEOUT = 4 * 60 * 60    # seconds before a relayed process tree is stopped
 NO_WINDOW = 0x08000000
 

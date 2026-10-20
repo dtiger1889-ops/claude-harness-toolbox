@@ -50,10 +50,12 @@ The worker stops it when the caller disconnects (exit 125) or at the four-hour d
 (exit 124), and closing the job also ends background processes the call left behind.
 Each call leaves a small `receipt.json` in its own folder under the state folder
 (status, exit code, session); prompts and output are never stored there. The caller
-waits 30 seconds for the worker to connect, measured from when the request was created
+waits 120 seconds for the worker to connect, measured from when the request was created
 (the same deadline the worker uses to expire it), then gives up. While it waits it
-re-launches the task after gaps of 1, 2, 4 and 8 seconds, so a slow start stacks a few
-workers rather than one per second. The sandbox probe may run for 25 seconds.
+re-launches the task after gaps of 10, 20 and 40 seconds, so a slow start stacks a few
+workers rather than one per second; on a fully loaded machine a 30-second window with
+one-second relaunches stacked 18 workers and none connected in time. The sandbox probe
+may run for 120 seconds; it was measured at 28-49 seconds with the screen locked.
 
 Interactive Codex (no arguments) is not relayed; it needs a native Windows console.
 
