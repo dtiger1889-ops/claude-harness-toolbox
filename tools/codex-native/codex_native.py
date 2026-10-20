@@ -46,7 +46,9 @@ _SYSTEM32 = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32"
 SCHTASKS = str(_SYSTEM32 / "schtasks.exe")
 TASKKILL = str(_SYSTEM32 / "taskkill.exe")
 
-START_TIMEOUT = 30           # seconds the caller waits for the desktop worker
+START_TIMEOUT = 30           # seconds from the request's creation that the caller waits for the desktop worker
+RELAUNCH_EVERY = 1           # seconds before the first task relaunch; each later gap doubles
+PREFLIGHT_TIMEOUT = 25       # seconds the sandbox probe may run before the call fails
 JOB_TIMEOUT = 4 * 60 * 60    # seconds before a relayed process tree is stopped
 NO_WINDOW = 0x08000000
 
@@ -270,7 +272,7 @@ def worker():
                     probe = subprocess.Popen(preflight_args(cli, args, cwd), stdin=subprocess.DEVNULL,
                                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=NO_WINDOW)
                     preflight_job.assign(probe)
-                    stdout, stderr = probe.communicate(timeout=25)
+                    stdout, stderr = probe.communicate(timeout=PREFLIGHT_TIMEOUT)
                     checked = subprocess.CompletedProcess(probe.args, probe.returncode, stdout, stderr)
                 finally:
                     preflight_job.close()
@@ -330,13 +332,17 @@ def client(args):
     threading.Thread(target=accept, daemon=True).start()
     connection = None
     try:
-        started = time.monotonic()
-        while not accepted.is_set() and time.monotonic() - started < START_TIMEOUT:
+        # Same wall-clock deadline the worker uses to expire this request.
+        deadline = request["created_at"] + START_TIMEOUT
+        # Relaunch gaps double so a slow start stacks a few workers, not one per gap.
+        gap = RELAUNCH_EVERY
+        while not accepted.is_set() and time.time() < deadline:
             launch = subprocess.run([SCHTASKS, "/Run", "/TN", TASK], capture_output=True,
                                     creationflags=NO_WINDOW, timeout=5)
             if launch.returncode:
                 raise RuntimeError("Cannot start task " + TASK + ": " + launch.stderr.decode(errors="replace"))
-            accepted.wait(1)
+            accepted.wait(max(0, min(gap, deadline - time.time())))
+            gap *= 2
         if not peers:
             raise RuntimeError("Desktop worker did not connect. Windows must remain signed in (a locked screen is expected to work)")
         connection = peers[0]

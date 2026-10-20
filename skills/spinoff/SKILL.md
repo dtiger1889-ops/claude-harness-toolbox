@@ -15,7 +15,7 @@ description: Starts a separate session for a side topic from a short brief rathe
    Read first: <project instructions and current state>
    Known: <evidence, relevant paths, commands, and errors>
    Decided: <settled choices and their authors, or none>
-   First action / question: <the actual user request's next step>
+   First action / question: <the actual user request's next step; it never drops a source or deliverable the Request line names, so a two-source ask keeps both here>
    Boundaries: <scope and pending approvals>
    ```
 
