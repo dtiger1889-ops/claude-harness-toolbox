@@ -9,6 +9,8 @@ description: Interviews the user before new work, then records an agreed build b
 
 Read the project's current state, instructions, relevant references, supplied material, and conversation. Treat answered questions as settled. If the brief is complete, proceed directly to recording it.
 
+When the ask points at something the user said, asked, or decided before ("as I said", "we covered this", "I asked for"), search their own past messages before asking again; those words often live only in an old session transcript. Claude Code keeps each session as a JSON Lines file under `~/.claude/projects/<project>/`. Search the user-role lines of recent files for two to four topic keywords from the ask (30 days by default, or the time the ask names; widen to a year once if nothing turns up), and drop subagent rows, pasted blocks, and system or tool text before matching. A hit in words the user typed is the answer: quote it with its date and do not strengthen it. A hit that reads like a pasted brief, a report, or another model's prose is not the user's own words; keep looking. If the search finds nothing, say so ("I searched your past messages for <keywords> and found nothing") and then ask. Where the transcripts are not reachable (a cloud or web session), say that instead.
+
 Clarify requirements before producing a deliverable that would anchor the user to an unsupported guess.
 
 ## 2. Ask only questions that change the result
