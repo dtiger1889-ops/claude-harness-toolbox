@@ -167,9 +167,12 @@ Pick the route by what this session has:
 
 **Hosted page** (the session has the `Artifact` and `ArtifactData` tools):
 - **Rebuild by database write, not by republish**, because republishing a page that declares the
-  `db` capability asks the user for consent again. When `.decisions/url.txt` exists:
-  re-run step 0 on any pick saved since it last ran, then `ArtifactData set`, collection
-  `board`, doc `current`, from the validated `board.json`. The open page updates live.
+  `db` capability asks the user for consent again. When `.decisions/url.txt` exists, immediately
+  before the write: `ArtifactData list` `picks` again; if any pick was saved since step 0 ran,
+  record it per step 0, move its decision to `left` as already decided, and re-validate and
+  re-render (a board built before the pick would show the answered question as open). Then
+  `ArtifactData set`, collection `board`, doc `current`, from the validated `board.json`. The
+  open page updates live.
 - First board for the project: publish `.decisions/board.publish.html` (it carries no data, since
   the data holds local paths a hosted page should not; it fills from `board/current`) with
   `capabilities: {db: {}}`, `icon: "scale"`, a one-sentence description; save the returned URL to
