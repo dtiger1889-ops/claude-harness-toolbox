@@ -165,5 +165,11 @@ check("13 decisions as object fails", code == 1 and "LIST" in out, "code=%d out=
 code, out = run_validator({"project": "demo", "generated": "x", "decisions": [], "left": {}})
 check("13b left as object fails", code == 1 and "LIST" in out, "code=%d out=%s" % (code, out))
 
+# 14. two decisions with the same id fail: they would share one saved pick
+dup = board_with(base_decision())
+dup["decisions"].append(base_decision(title="Another fork?"))
+code, out = run_validator(dup)
+check("14 duplicate decision ids fail", code == 1 and "unique" in out, "code=%d out=%s" % (code, out))
+
 print("---- %d passed, %d failed ----" % (pass_count, fail_count))
 sys.exit(1 if fail_count else 0)

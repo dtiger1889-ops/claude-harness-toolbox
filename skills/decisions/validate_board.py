@@ -68,11 +68,16 @@ def main(path):
     if not isinstance(data.get("left", []), list):
         fail("'left' must be a LIST, got %s" % type(data["left"]).__name__)
 
+    seen_ids = set()
     for d in data["decisions"]:
         where = d.get("id", "<a decision with no id>")
         for field in DECISION_FIELDS:
             if field not in d:
                 fail("%s is missing '%s'" % (where, field))
+        # The page saves each pick under picks/<id>, so two decisions sharing an id share one pick.
+        if d["id"] in seen_ids:
+            fail("%s: decision ids must be unique (the page saves picks under the id)" % where)
+        seen_ids.add(d["id"])
         if not isinstance(d["background"], list) or not d["background"]:
             fail("%s: background must be a non-empty LIST of paragraph strings "
                  "(the template renders one <p> per item)" % where)
