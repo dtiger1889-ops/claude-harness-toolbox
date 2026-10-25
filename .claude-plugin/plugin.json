@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "mackforge-harness-toolbox",
   "displayName": "Mackforge Harness Toolbox",
-  "version": "1.2.1",
-  "description": "A tested harness for durable work across coding agents: CLAUDE.md/CHECKPOINT.md state files, an orientation gate, an interview-before-you-build gate and other hooks, and fourteen skills that encode the conventions so you never re-explain them.",
+  "version": "1.3.0",
+  "description": "A tested harness for durable work across coding agents: CLAUDE.md/CHECKPOINT.md state files, an orientation gate, an interview-before-you-build gate and other hooks, and seventeen skills that encode the conventions so you never re-explain them.",
   "author": {
     "name": "Daniel Mack",
     "url": "https://mackforge.dev"
@@ -22,18 +22,21 @@
   "skills": [
     "./skills/breakdown/",
     "./skills/checkpoint/",
+    "./skills/decisions/",
     "./skills/dumb/",
     "./skills/fanout/",
     "./skills/grill-me/",
     "./skills/log/",
     "./skills/necromancy/",
+    "./skills/new-project/",
     "./skills/outside/",
     "./skills/plain/",
     "./skills/prevent/",
     "./skills/prove/",
     "./skills/redteam/",
     "./skills/spec/",
-    "./skills/spinoff/"
+    "./skills/spinoff/",
+    "./skills/vet/"
   ],
   "hooks": "./hooks/hooks.json"
 }

@@ -1,0 +1,222 @@
+<title>__PROJECT__ decisions</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #f6f4ef; --panel: #ffffff; --ink: #1f2320; --muted: #5d635e; --line: #d9d5cc;
+    --accent: #2f5d50; --accent-ink: #ffffff; --picked: #e6efe9; --picked-line: #8fb3a3; --cost: #8a4b2d;
+    --shadow: 0 1px 2px rgba(31,35,32,.06), 0 8px 24px rgba(31,35,32,.06); color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #171a18; --panel: #1f2321; --ink: #ebe9e3; --muted: #a3a89f; --line: #34393a;
+      --accent: #7fb59f; --accent-ink: #10201a; --picked: #233b31; --picked-line: #4f7f6b; --cost: #d99a78;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #171a18; --panel: #1f2321; --ink: #ebe9e3; --muted: #a3a89f; --line: #34393a;
+    --accent: #7fb59f; --accent-ink: #10201a; --picked: #233b31; --picked-line: #4f7f6b; --cost: #d99a78;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35); color-scheme: dark;
+  }
+  body { background: var(--ground); color: var(--ink); font: 16px/1.55 "Public Sans", system-ui, sans-serif; padding-inline: clamp(16px, 4vw, 40px); padding-block: 32px 64px; }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 26px; }
+  h1 { font: 700 clamp(28px, 4vw, 38px)/1.1 Fraunces, Georgia, serif; margin: 0; text-wrap: balance; }
+  .meta { color: var(--muted); font-size: 14px; }
+  .count { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .empty { background: var(--panel); border: 1px dashed var(--line); border-radius: 10px; padding: 28px; text-align: center; color: var(--muted); }
+  .empty strong { color: var(--ink); font-family: Fraunces, Georgia, serif; font-size: 22px; display: block; margin-bottom: 6px; }
+  .decision { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden; }
+  .decision.done { border-color: var(--picked-line); }
+  .head { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; padding: 18px 20px 6px; align-items: start; }
+  .head h2 { font: 700 21px/1.25 Fraunces, Georgia, serif; margin: 0; text-wrap: balance; }
+  .state { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; padding-top: 6px; }
+  .state.picked { color: var(--accent); font-weight: 600; }
+  .background { padding: 0 20px 6px; max-width: 68ch; }
+  .background p { margin: 6px 0; }
+  .background .why { color: var(--muted); }
+  .sources { padding: 4px 20px 12px; font-size: 13.5px; color: var(--muted); }
+  .sources span { display: block; font-family: "JetBrains Mono", ui-monospace, monospace; word-break: break-all; }
+  .sources b { font-family: "Public Sans", system-ui, sans-serif; font-weight: 600; color: var(--ink); }
+  .options { display: grid; gap: 10px; padding: 4px 20px 18px; }
+  .opt { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; align-items: start; }
+  .opt.selected { background: var(--picked); border-color: var(--picked-line); }
+  .opt .label { font-weight: 600; }
+  .opt .default { display: block; font-size: 13px; color: var(--accent); margin-top: 4px; font-weight: 500; }
+  .nodefault { padding: 0 20px 8px; font-size: 13.5px; color: var(--muted); font-style: italic; }
+  .opt dl { margin: 6px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; font-size: 14.5px; grid-column: 1 / -1; }
+  .opt dt { color: var(--muted); }
+  .opt dt.cost { color: var(--cost); }
+  .opt dd { margin: 0; }
+  button.pick { font: 600 14px/1 "Public Sans", system-ui, sans-serif; background: var(--panel); color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+  button.pick:hover, button.pick:focus-visible { background: var(--accent); color: var(--accent-ink); outline: 2px solid transparent; }
+  .opt.selected button.pick { background: var(--accent); color: var(--accent-ink); }
+  .note { padding: 0 20px 18px; display: grid; gap: 6px; }
+  .note label { font-size: 13px; color: var(--muted); }
+  .note textarea { width: 100%; box-sizing: border-box; font: 15px/1.45 "Public Sans", system-ui, sans-serif; background: var(--ground); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; resize: vertical; min-height: 56px; }
+  .note .saved { font-size: 12px; color: var(--muted); }
+  .noterow { display: flex; align-items: center; gap: 12px; }
+  button.savenote { font: 600 13px/1 "Public Sans", system-ui, sans-serif; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; cursor: pointer; }
+  button.savenote:hover, button.savenote:focus-visible { border-color: var(--accent); color: var(--accent); outline: 2px solid transparent; }
+  details.left { margin-top: 30px; color: var(--muted); }
+  details.left summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+  details.left table { border-collapse: collapse; width: 100%; font-size: 14px; margin-top: 10px; }
+  details.left td { border-top: 1px solid var(--line); padding: 8px 6px; vertical-align: top; }
+  details.left td:first-child { width: 42%; color: var(--ink); }
+  .tbl { overflow-x: auto; }
+  .status { position: fixed; right: 16px; bottom: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; color: var(--muted); box-shadow: var(--shadow); }
+  .receipt { padding: 0 20px 14px; font-size: 13.5px; color: var(--accent); }
+  .receipt.bad { color: var(--cost); }
+  @media (prefers-reduced-motion: no-preference) { .opt { transition: background .15s, border-color .15s; } }
+</style>
+<div class="wrap">
+  <header>
+    <h1 id="title"></h1>
+    <span class="meta">built <span id="built" class="count"></span> &middot; <span id="counts" class="count"></span></span>
+  </header>
+  <div id="board"></div>
+  <details class="left" id="left" hidden>
+    <summary>Left off the board, and why</summary>
+    <div class="tbl"><table id="leftTable"></table></div>
+  </details>
+</div>
+<div class="status" id="status" hidden></div>
+<script>
+  let DATA = __DATA__;
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const picks = {};     // picks/<decision>: {option, note, at, rev}
+  const receipts = {};  // receipts/<decision>: {rev, state: 'applied'|'error', result, error, at}
+  const drafts = {};    // unsaved textarea text, kept across re-renders
+  let db = null;
+  const newId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)).replace(/-/g, '').slice(0, 16);
+  const optLabel = (d, key) => ((d.options || []).find(o => o.key === key) || {}).label || key;
+  // A receipt counts only when it names the pick's current revision, so a re-saved pick shows as
+  // not recorded until the next /decisions run records it.
+  function receiptFor(id) {
+    const p = picks[id]; if (!p) return null;
+    const r = receipts[id];
+    return (r && r.rev === p.rev) ? r : null;
+  }
+  const dirty = (id) => drafts[id] !== undefined && drafts[id] !== ((picks[id] && picks[id].note) || '');
+
+  function render() {
+    const focus = document.activeElement && document.activeElement.id;
+    const sel = focus && document.activeElement.selectionStart;
+    $('#title').textContent = DATA.project ? DATA.project + ' decisions' : 'Decisions';
+    $('#built').textContent = DATA.generated;
+    const open = DATA.decisions.filter(d => !(picks[d.id] && picks[d.id].option)).length;
+    $('#counts').textContent = DATA.decisions.length + ' decision' + (DATA.decisions.length === 1 ? '' : 's') + ', ' + open + ' open';
+    const board = $('#board');
+    board.innerHTML = '';
+    if (DATA.loading) {
+      board.innerHTML = '<div class="empty"><strong>Loading the board...</strong>It fills in from the board\'s saved data in a moment.</div>';
+    } else if (!DATA.decisions.length) {
+      board.innerHTML = '<div class="empty"><strong>Nothing needs deciding right now.</strong>Everything open in this project is work an agent can do or a step you fire; no fork needs your judgment.</div>';
+    }
+    for (const d of DATA.decisions) {
+      const p = picks[d.id] || {};
+      const el = document.createElement('section');
+      el.className = 'decision' + (p.option ? ' done' : '');
+      el.id = d.id;
+      const bg = (d.background || []).map(s => '<p>' + esc(s) + '</p>').join('');
+      const src = (d.sources || []).map(s => '<span><b>' + esc(s.label) + ':</b> ' + esc(s.path) + '</span>').join('');
+      el.innerHTML = `
+        <div class="head">
+          <h2>${esc(d.title)}</h2>
+          <div class="state ${p.option ? 'picked' : ''}">${p.option ? 'picked ' + esc(optLabel(d, p.option)) : (p.unpicked ? 'pick removed' : (p.note ? 'note saved, no pick' : 'open'))}</div>
+        </div>
+        ${receiptHtml(d, p)}
+        <div class="background">${bg}<p class="why">${esc(d.why_now)}</p></div>
+        <div class="sources">${src}</div>
+        ${(!d.default && d.default_reason) ? '<div class="nodefault">No suggested pick: ' + esc(d.default_reason) + '</div>' : ''}
+        <div class="options">${d.options.map(o => `
+          <div class="opt ${p.option === o.key ? 'selected' : ''}" data-opt="${esc(o.key)}">
+            <div class="label">${esc(o.label)}${d.default === o.key ? '<span class="default">suggested' + (d.default_reason ? ': ' + esc(d.default_reason) : '') + '</span>' : ''}</div>
+            <button class="pick" data-d="${esc(d.id)}" data-o="${esc(o.key)}" ${p.option === o.key ? 'aria-pressed="true" title="Click again to remove this pick"' : ''}>${p.option === o.key ? 'Picked (click to undo)' : 'Pick this'}</button>
+            <dl><dt>choose this if</dt><dd>${esc(o.choose_if)}</dd><dt class="cost">it costs</dt><dd>${esc(o.cost)}</dd><dt>it unblocks</dt><dd>${esc(o.unblocks)}</dd></dl>
+          </div>`).join('')}
+        </div>
+        <div class="note">
+          <label for="note-${esc(d.id)}">A note with your pick (optional)</label>
+          <textarea id="note-${esc(d.id)}" data-d="${esc(d.id)}">${esc(drafts[d.id] !== undefined ? drafts[d.id] : (p.note || ''))}</textarea>
+          <div class="noterow"><button class="savenote" data-d="${esc(d.id)}">Save note</button><span class="saved" id="saved-${esc(d.id)}">${dirty(d.id) ? 'not saved yet' : (p.at ? 'saved ' + esc(p.at) : '')}</span></div>
+        </div>`;
+      board.appendChild(el);
+    }
+    if (DATA.left && DATA.left.length) {
+      $('#left').hidden = false;
+      $('#leftTable').innerHTML = DATA.left.map(l => `<tr><td>${esc(l.title)}</td><td>${esc(l.verdict)}</td></tr>`).join('');
+    }
+    if (focus) { const f = document.getElementById(focus); if (f) { f.focus(); if (typeof sel === 'number' && f.setSelectionRange) f.setSelectionRange(sel, sel); } }
+  }
+
+  function receiptHtml(d, p) {
+    if (!p.option && !(p.note || '').trim() && !p.unpicked) return '';
+    const r = receiptFor(d.id);
+    if (r) {
+      if (r.state === 'applied') return '<div class="receipt">Recorded ' + esc(r.at || '') + (r.result ? ': ' + esc(r.result) : '') + (r.answer ? '<br>Answer: ' + esc(r.answer) : '') + '</div>';
+      return '<div class="receipt bad">Couldn\'t record: ' + esc(r.error || 'no reason given') + '</div>';
+    }
+    return '<div class="receipt bad">Saved here; the next /decisions run records it in the project.</div>';
+  }
+
+  // Every save gets a fresh `rev`; a receipt names the rev it recorded, so re-saving (even an
+  // unchanged pick) makes it owed again and a late receipt can never mark a newer pick done.
+  // `unpick` (clicking the picked option again) saves option null plus `unpicked: <the old key>`,
+  // so a run that already recorded the old pick knows to take it back.
+  async function save(id, option, unpick) {
+    const note = drafts[id] !== undefined ? drafts[id] : ((picks[id] && picks[id].note) || '');
+    const at = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+    const opt = unpick ? null : (option === undefined ? ((picks[id] && picks[id].option) || null) : option);
+    const unpicked = unpick ? picks[id].option : ((!opt && picks[id] && picks[id].unpicked) || null);
+    if (!opt && !note.trim() && !unpicked) { showStatus('Nothing to save yet: pick an option or write a note.'); return false; }
+    if (!db) { showStatus('Shown here only: this view cannot save. Tell Claude your pick in chat instead.'); return false; }
+    const prev = picks[id];
+    const doc = { project: DATA.project, decision: id, option: opt, note, at, rev: newId(), board_built: DATA.generated };
+    if (unpicked) doc.unpicked = unpicked;
+    picks[id] = doc; delete drafts[id]; render();
+    try {
+      await db.doc('picks/' + id).set(doc);
+      showStatus(unpick ? 'Pick removed.' : opt ? 'Saved. The next /decisions run records it.' : 'Note saved. The next /decisions run answers it.');
+      return true;
+    } catch (e) {
+      if (prev) picks[id] = prev; else delete picks[id];
+      drafts[id] = note; render();
+      showStatus('Could not save (' + (e && e.code || 'error') + '). Try once more.');
+      return false;
+    }
+  }
+  function showStatus(t) { const s = $('#status'); s.textContent = t; s.hidden = false; clearTimeout(showStatus.t); showStatus.t = setTimeout(() => s.hidden = true, 4000); }
+
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('button.pick');
+    if (b) { const cur = picks[b.dataset.d]; save(b.dataset.d, b.dataset.o, !!(cur && cur.option === b.dataset.o)); return; }
+    const n = ev.target.closest('button.savenote'); if (n) { save(n.dataset.d); return; }
+  });
+  document.addEventListener('input', (ev) => {
+    const t = ev.target.closest('textarea[data-d]'); if (!t) return;
+    drafts[t.dataset.d] = t.value;
+    const s = document.getElementById('saved-' + t.dataset.d); if (s) s.textContent = dirty(t.dataset.d) ? 'not saved yet' : '';
+  });
+
+  render();
+  (async () => {
+    try {
+      if (typeof claude === 'undefined') return; // opened as a plain file: read-only preview
+      db = await claude.use('db');
+      if (!db) return;
+      // Each snapshot is the whole collection: replace, so a document deleted elsewhere leaves the page too.
+      const replaceAll = (obj, qs) => { for (const k of Object.keys(obj)) delete obj[k]; for (const s of qs.docs) obj[s.id] = s.data(); };
+      db.collection('picks').onSnapshot((qs) => { replaceAll(picks, qs); render(); }, () => {});
+      db.collection('receipts').onSnapshot((qs) => { replaceAll(receipts, qs); render(); }, () => {});
+      // Rebuilds arrive as a database write to board/current, not a republish: a republish of a
+      // page that declares db asks for consent again.
+      db.doc('board/current').onSnapshot((snap) => {
+        if (!snap.exists) return;
+        const next = snap.data();
+        if (next && Array.isArray(next.decisions)) { DATA = next; render(); }
+      }, () => {});
+    } catch (e) { db = null; }
+  })();
+</script>

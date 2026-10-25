@@ -31,7 +31,7 @@ Inside any Claude Code session, run:
 ```
 
 The first command registers this repository as a plugin marketplace; the second installs
-the plugin from it. That gives you all fourteen skills as `/slash` commands and wires the
+the plugin from it. That gives you all seventeen skills as `/slash` commands and wires the
 hooks automatically — no hand-merging a block into `settings.json`, and no absolute paths
 to edit, because the plugin resolves its own scripts.
 
@@ -99,6 +99,7 @@ Copy any folder into `~/.claude/skills/<name>/`. Each becomes a `/slash` command
 | `fanout` | `/fanout`: five distinct ideation agents plus a critic for open-ended problems, invoked explicitly. Uses native agent tools within the host's concurrency limits, batching when needed. Cost depends on the models, context and output; six helper calls usually consume more than a single review. |
 | `new-project` | `/new-project`: scaffolds a project from [`templates/`](templates/) and then registers it everywhere it must appear (the project ledger, any container index, its backup lane), because a project no index names is invisible to every later session. Asks only the name, location and backup-lane questions the conversation hasn't answered, and ends with a checklist that re-reads each index. |
 | `vet` | `/vet`: decides whether someone else's repo, skill, plugin or MCP server earns a place in your setup. Dedupes against past verdicts first, kills candidates on cheap gates (identity, liveness, license, entry cost) before any deep read, judges fit against a written-down pain, and records one of five verdicts in a ledger so nothing gets evaluated twice. Default: steal the pattern, don't install the thing. |
+| `decisions` | `/decisions`: shows only the choices that are genuinely yours to make in a project, each with its options and what every option costs and unblocks. Reads the CHECKPOINT's open threads (plus an optional folder of markdown task notes), runs each through a fixed test (a real fork, needs your judgment, live now) and prints the verdicts before building anything, so technical forks, chores and scheduling never reach you. The board is a hosted page where you click your picks when the session can publish one, otherwise a numbered list in chat; the next run writes your picks back onto the threads. A collector script, a validator (with tests) and the page template are bundled. **Requires PowerShell 5.1+ or `pwsh` 7+ and Python 3.** |
 | `breakdown` | `/breakdown`: convergent, action-first decomposition: real goal, smallest next action, the one blocking decision, collapsed plan, first trap. |
 | `plain` | `/plain`: re-explains a dense/jargon response in plain generous English, resolving every invented code by looking it up (never guessing). `/plain show` redraws it as the smallest plain-text picture instead (pseudocode, a call tree, a file tree, or a diff of one). |
 | `spec` | `/spec`: writes lean specs with a mandatory Closeout section and forces the archive/promote step when the work ships, so dead specs stop piling up looking live. |
