@@ -144,10 +144,10 @@
         </div>`;
       board.appendChild(el);
     }
-    if (DATA.left && DATA.left.length) {
-      $('#left').hidden = false;
-      $('#leftTable').innerHTML = DATA.left.map(l => `<tr><td>${esc(l.title)}</td><td>${esc(l.verdict)}</td></tr>`).join('');
-    }
+    // Always set both: a live rebuild with an empty `left` must clear the old rows.
+    const left = DATA.left || [];
+    $('#left').hidden = !left.length;
+    $('#leftTable').innerHTML = left.map(l => `<tr><td>${esc(l.title)}</td><td>${esc(l.verdict)}</td></tr>`).join('');
     if (focus) { const f = document.getElementById(focus); if (f) { f.focus(); if (typeof sel === 'number' && f.setSelectionRange) f.setSelectionRange(sel, sel); } }
   }
 
