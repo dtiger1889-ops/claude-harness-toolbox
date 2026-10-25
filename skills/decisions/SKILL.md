@@ -49,7 +49,9 @@ collection on that URL. Each pick is `{decision, option, note, at, rev, unpicked
   decision open. Exception: a note that states a choice outright ("drop it", "do B") is recorded
   as that choice, in the user's words.
 - **Removed pick** (`unpicked` set, `option` null): strike the earlier `owner decision` line and
-  mark the bullet undecided again.
+  mark the bullet undecided again. For a task note, prepend `<YYYY-MM-DD> -- you removed your pick
+  "<old option label>" on <at>` to its `reply`: the collector reads that entry as reopening the
+  question, so the next run puts it back on the board.
 - After recording, `ArtifactData set` `receipts/<decision>` to `{rev, state: "applied", result:
   "<one line>", at: "<YYYY-MM-DD HH:MM UTC>"}`. Never write into a pick document; the page
   replaces it whole on every save.
