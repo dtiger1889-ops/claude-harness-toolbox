@@ -159,5 +159,11 @@ for i, (field, text) in enumerate(OK_REASONS):
     code, out = run_validator(board_with(base_decision(**{field: text})))
     check("12.%d %s %r passes" % (i, field, text), code == 0, "code=%d out=%s" % (code, out))
 
+# 13. decisions or left as an object (not a list) fails: the template calls .filter/.map on them
+code, out = run_validator({"project": "demo", "generated": "x", "decisions": {}, "left": []})
+check("13 decisions as object fails", code == 1 and "LIST" in out, "code=%d out=%s" % (code, out))
+code, out = run_validator({"project": "demo", "generated": "x", "decisions": [], "left": {}})
+check("13b left as object fails", code == 1 and "LIST" in out, "code=%d out=%s" % (code, out))
+
 print("---- %d passed, %d failed ----" % (pass_count, fail_count))
 sys.exit(1 if fail_count else 0)

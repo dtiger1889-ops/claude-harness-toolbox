@@ -62,6 +62,11 @@ def main(path):
     for field in ("project", "generated", "decisions"):
         if field not in data:
             fail("top level is missing '%s'" % field)
+    # The template calls .filter/.map on both, so an object or string here blanks the page.
+    if not isinstance(data["decisions"], list):
+        fail("'decisions' must be a LIST, got %s" % type(data["decisions"]).__name__)
+    if not isinstance(data.get("left", []), list):
+        fail("'left' must be a LIST, got %s" % type(data["left"]).__name__)
 
     for d in data["decisions"]:
         where = d.get("id", "<a decision with no id>")
