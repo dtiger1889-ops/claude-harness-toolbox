@@ -171,5 +171,13 @@ dup["decisions"].append(base_decision(title="Another fork?"))
 code, out = run_validator(dup)
 check("14 duplicate decision ids fail", code == 1 and "unique" in out, "code=%d out=%s" % (code, out))
 
+# 15. a doc in any folder layout is grounded; Windows separators work; a CHECKPOINT pointer alone is not
+for i, p in enumerate(["design.md", "C:\\work\\demo\\docs\\plan.md", "notes/pricing call.txt"]):
+    code, out = run_validator(board_with(base_decision(sources=[{"label": "doc", "path": p},
+                                                                {"label": "thread", "path": "CHECKPOINT.md:20"}])))
+    check("15.%d %r passes" % (i, p), code == 0, "code=%d out=%s" % (code, out))
+code, out = run_validator(board_with(base_decision(sources=[{"label": "thread", "path": "C:\\work\\demo\\CHECKPOINT.md:3"}])))
+check("15b Windows CHECKPOINT pointer alone fails", code == 1 and "research" in out, "code=%d out=%s" % (code, out))
+
 print("---- %d passed, %d failed ----" % (pass_count, fail_count))
 sys.exit(1 if fail_count else 0)

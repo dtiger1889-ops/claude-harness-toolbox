@@ -13,11 +13,9 @@ import sys
 OPTION_FIELDS = ("key", "label", "choose_if", "cost", "unblocks")
 DECISION_FIELDS = ("id", "title", "background", "why_now", "sources", "options")
 
-# A source counts as "the research it came from" if its path points at a research, spec, doc or
-# note file -- not just a pointer back at the CHECKPOINT line or task note that listed it.
-GROUNDED_SOURCE_PATTERNS = ("research/", "specs/", "clip", "note", "resources/", "business/",
-                            "docs/", "reference/", "references/", "-spec.", "_research.", "/drafts-",
-                            "spec-audits/", "http://", "https://")
+# A source counts as "the research it came from" if it is anything other than a pointer back at
+# the CHECKPOINT line that listed the decision: a doc, spec or note in any folder layout, or a URL.
+CHECKPOINT_POINTER = re.compile(r"(^|/)checkpoint\.md(:\d+)?$")
 
 # A why_now or default_reason about the owner's time or schedule marks a scheduling item, which
 # the skill's step 2 discard list keeps off the board. Phrases are about THEIR time only: a
@@ -46,11 +44,10 @@ def fail(msg):
 
 
 def has_grounded_source(sources):
-    """True if at least one source's path looks like the research file, spec, doc or note the
-    decision came from (case-insensitive substring match)."""
+    """True if at least one source's path is something other than the CHECKPOINT pointer."""
     for s in sources:
-        path = str(s.get("path", "")).lower()
-        if any(pat in path for pat in GROUNDED_SOURCE_PATTERNS):
+        path = str(s.get("path", "")).strip().lower().replace("\\", "/")
+        if path and not CHECKPOINT_POINTER.search(path):
             return True
     return False
 
@@ -87,10 +84,9 @@ def main(path):
             if "label" not in s or "path" not in s:
                 fail("%s: every source needs a label and a path" % where)
         if not has_grounded_source(d["sources"]):
-            fail("%s: sources needs at least one entry pointing at the research, spec, doc or "
-                 "note it came from (a path containing 'research/', 'specs/', 'docs/', "
-                 "'reference/', 'resources/', 'clip', 'note', or a URL) -- a pointer back at the "
-                 "CHECKPOINT line alone is not background" % where)
+            fail("%s: sources needs at least one entry pointing at the research, spec, doc, "
+                 "note or URL it came from -- a pointer back at the CHECKPOINT line alone is "
+                 "not background" % where)
         if not 2 <= len(d["options"]) <= 8:
             fail("%s: needs 2 to 8 options, found %d" % (where, len(d["options"])))
         keys = []
