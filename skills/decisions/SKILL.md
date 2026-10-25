@@ -169,7 +169,9 @@ Pick the route by what this session has:
 - **Rebuild by database write, not by republish**, because republishing a page that declares the
   `db` capability asks the user for consent again. When `.decisions/url.txt` exists, immediately
   before the write: `ArtifactData list` `picks` again; if any pick was saved since step 0 ran,
-  record it per step 0, move its decision to `left` as already decided, and re-validate and
+  record it per step 0 (read its sources and option labels from the board it was picked on, the
+  `board/current` document, since the new file may no longer carry it), move its decision to
+  `left` as already decided, and re-validate and
   re-render (a board built before the pick would show the answered question as open). Then
   `ArtifactData set`, collection `board`, doc `current`, from the validated `board.json`. The
   open page updates live.
