@@ -66,6 +66,8 @@ collection on that URL. Each pick is `{decision, option, note, at, rev, unpicked
 pwsh -NoProfile -File <this skill's folder>/collect_decisions.ps1 -ProjectDir <project folder>
 ```
 
+On Windows without PowerShell 7, run the same line with `powershell` in place of `pwsh`.
+
 Add `-NotesDir <folder>` (or set `DECISIONS_NOTES_DIR`) to include markdown task notes whose
 frontmatter carries `project: <folder name>`; it is optional, and without it the CHECKPOINT is the
 only source. Output is JSON: `candidates[]` of kind `thread` (Open-threads bullets, with tags and
