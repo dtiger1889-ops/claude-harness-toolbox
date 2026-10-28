@@ -5,7 +5,8 @@
 A tested, empirically grounded harness for durable work across coding agents, with
 [Claude Code](https://claude.com/claude-code) as the reference implementation. Its
 file-based state and checkpoint patterns work with Codex and other file-capable agents
-too; its hooks and settings remain Claude-specific.
+too. Its hooks ship for Claude Code, plus a smaller Windows set for Codex (see
+[Codex hooks](#codex-hooks-windows-powershell) for what Codex enforces today).
 
 ![Claude Code Harness Toolbox: one steady hand at the center, linked to seven tool symbols for the toolbox's complementary skills](assets/toolbox.png)
 
@@ -18,39 +19,7 @@ you never re-explain them.
 
 ## Install
 
-### As a Claude Code plugin (skills + hooks, two commands)
-
-Inside any Claude Code session, run:
-
-```
-/plugin marketplace add dtiger1889-ops/claude-harness-toolbox
-```
-
-```
-/plugin install mackforge-harness-toolbox@harness-toolbox
-```
-
-The first command registers this repository as a plugin marketplace; the second installs
-the plugin from it. That gives you all seventeen skills as `/slash` commands and wires the
-hooks automatically — no hand-merging a block into `settings.json`, and no absolute paths
-to edit, because the plugin resolves its own scripts.
-
-To try it from a local clone before installing, point the marketplace command at the
-folder instead (`/plugin marketplace add ./claude-harness-toolbox`), or load it for one
-session with `claude --plugin-dir ./claude-harness-toolbox`.
-
-**Platform caveat.** The hooks the plugin wires are the Windows PowerShell set
-([`hooks/hooks.json`](hooks/hooks.json)) — the maintainer's live, tested reference. On
-macOS/Linux the skills work as-is, but replace the installed plugin's `hooks/hooks.json`
-with [`hooks/hooks-macos-linux.json`](hooks/hooks-macos-linux.json) (the bash orientation
-gate plus the receipt and compaction reminder), or skip the plugin's hooks and wire
-`hooks/settings-macos-linux.example.json` by hand as described below. Neither bash path
-has been verified on that hardware.
-
-The plugin does **not** create the workspace scaffold. For that, and for the guided
-install, use `harness_me.txt` below.
-
-### The guided install (any file-capable agent)
+### The guided install (recommended; any file-capable agent)
 
 Flip over to the "</> Code" tab in Claude Desktop (or open a fresh Claude Code session),
 set the permission mode to Manual or Accept edits for your security, set the model to
@@ -67,6 +36,30 @@ rollback-record contract. Design rationale stays here in the README and in the b
 with configuration, maintenance, and historical guidance under [`docs/`](docs/), so an
 installing session does not pay to parse them.
 
+### Skills and hooks only: the Claude Code plugin
+
+If you already have your own `CLAUDE.md`/`CHECKPOINT.md` setup and only want the skills
+and hooks, install the plugin from inside a Claude Code session (v2.1.275 or later):
+
+```
+/plugin install mackforge-harness-toolbox --marketplace dtiger1889-ops/claude-harness-toolbox
+```
+
+Claude Code adds this repository as a plugin source, then installs the plugin from it
+(older versions: `/plugin marketplace add dtiger1889-ops/claude-harness-toolbox`, then
+`/plugin install mackforge-harness-toolbox@harness-toolbox`). You get the seventeen
+skills as `/slash` commands and the hooks wired automatically. The plugin does **not**
+create the workspace scaffold; the guided install above does. To try it for one session
+from a local clone, run `claude --plugin-dir ./claude-harness-toolbox`.
+
+**Platform caveat.** The hooks the plugin wires are the Windows PowerShell set
+([`hooks/hooks.json`](hooks/hooks.json)) — the maintainer's live, tested reference. On
+macOS/Linux the skills work as-is, but replace the installed plugin's `hooks/hooks.json`
+with [`hooks/hooks-macos-linux.json`](hooks/hooks-macos-linux.json) (the bash orientation
+gate plus the receipt and compaction reminder), or skip the plugin's hooks and wire
+`hooks/settings-macos-linux.example.json` by hand as described below. Neither bash path
+has been verified on that hardware.
+
 ### By hand (no plugin support, or another agent)
 
 - **Skills**: copy any folder from [`skills/`](skills/) into `~/.claude/skills/<name>/`.
@@ -77,6 +70,26 @@ installing session does not pay to parse them.
   never fire for sessions opened inside project subfolders.)
 - **Templates**: [`templates/`](templates/) holds the skeletons for bootstrapping new
   projects (`CLAUDE.md`, `CHECKPOINT.md`, and a baseline `.gitignore`).
+
+### Codex hooks (Windows PowerShell)
+
+[`hooks/codex/`](hooks/codex/) is a smaller hook set in Codex's own format. It is a reminder
+gate, not proof of a full read: it records that a read command naming your `CLAUDE.md` and
+`CHECKPOINT.md` was requested, and blocks other local actions until both were. Only the
+SessionStart receipt is shown running on Codex so far; the gate, guard and compaction
+reminder are configured but not shown running, and Codex 0.164.0-alpha.11.1 was observed
+running them without enforcing the block in `codex exec`.
+
+1. Copy the `hooks/codex/` folder to `~/.codex/hooks/harness/`.
+2. In its `hooks.json`, replace every `<HOOKS_DIR>` with that folder's absolute path using
+   forward slashes (the absolute form of `~/.codex/hooks/harness`).
+3. Merge the result into `~/.codex/hooks.json`. Optional: set `HARNESS_WORKSPACE_ROOT` to a
+   folder holding a `CLAUDE.md` and `CHECKPOINT.md` as a fallback for sessions started
+   outside any project.
+4. Open `/hooks` in Codex and trust each new hook: Codex keeps changed or new hooks inactive
+   until their hash is approved.
+
+Check the scripts with `powershell.exe -NoProfile -File hooks/codex/orient_gate_tests.ps1`.
 
 ## What's inside
 

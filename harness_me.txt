@@ -41,6 +41,7 @@ Ask once for any unknown values:
    - Core hooks: SessionStart receipt + PreCompact reminder.
    - Recommended hooks: orientation gate; Windows mechanical guard.
    - Optional hooks: Windows security backstop; tmux/SSH environment receipt.
+   - Optional Codex hooks (Windows PowerShell, only if Codex is installed): `hooks/codex/`.
    - Optional skills: named folders under `skills/`, or `all`.
 
 If the user already supplied a value, do not ask again.
@@ -342,6 +343,14 @@ If only this guide is available, use Appendix A.
   PreToolUse objects. Pairs with the `grill-me` skill; install both or neither.
 - Windows `/log` reminder: copy `hooks/log_backstop.ps1`; merge its PostToolUse object
   (matcher `Skill`). Pairs with the `log` skill; install both or neither.
+
+- Codex hooks (Windows PowerShell, only if the user runs Codex): copy the `hooks/codex/`
+  folder to `~/.codex/hooks/harness/`; in its `hooks.json` replace every `<HOOKS_DIR>` with
+  that folder's absolute path using forward slashes; merge the result into
+  `~/.codex/hooks.json`; tell the user to open `/hooks` in Codex and trust each new hook.
+  Verify with `powershell.exe -NoProfile -File hooks/codex/orient_gate_tests.ps1` (expect
+  10/10). The gate is a reminder that records read requests, and only the SessionStart
+  receipt is shown running on Codex so far; say so in the final report.
 
 Keep hook policies in separate matcher objects. Do not merge them into one broad matcher.
 
