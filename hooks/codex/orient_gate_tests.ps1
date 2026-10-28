@@ -58,7 +58,15 @@ function New-Event {
 function Invoke-Script {
     param([string]$Script, [string]$Stdin)
     $out = $Stdin | & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Script 2>&1 | Out-String
-    return [pscustomobject]@{ Exit = $LASTEXITCODE; Text = $out }
+    $code = $LASTEXITCODE
+    # The gate blocks with a JSON permissionDecision "deny" on stdout and exit 0 (the form Codex
+    # enforces). In these checks "exits 2" means blocked: a valid deny counts as 2; a bare exit 2
+    # with no deny JSON counts as 99, because Codex does not enforce that form.
+    $isDeny = $false
+    try { $isDeny = (($out | ConvertFrom-Json).hookSpecificOutput.permissionDecision -eq 'deny') } catch {}
+    if ($code -eq 0 -and $isDeny) { $code = 2 }
+    elseif ($code -eq 2) { $code = 99 }
+    return [pscustomobject]@{ Exit = $code; Text = $out }
 }
 
 # Flags are named codex_orient_<session>.<file key>.<kind>.flag; this matches any file key.

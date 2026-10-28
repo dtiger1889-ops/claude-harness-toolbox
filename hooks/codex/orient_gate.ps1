@@ -1,6 +1,6 @@
 # Codex PreToolUse orientation gate (a reminder gate, not proof of a full read).
-# Blocks local actions (exit 2 with the reason on stderr, which is the blocking contract in the
-# Codex hooks docs) until this session has run a read command that NAMES the resolved CLAUDE.md
+# Blocks local actions (a JSON permissionDecision "deny" on stdout, one of the blocking forms in
+# the Codex hooks docs) until this session has run a read command that NAMES the resolved CLAUDE.md
 # and the resolved CHECKPOINT.md. The read commands themselves stay allowed, so there is no
 # circular block. It records read REQUESTS; it cannot see whether the read reached EOF.
 #
@@ -134,8 +134,12 @@ try {
     if (-not $claudeReady) { $missing += $claudePath }
     if (-not $checkpointReady) { $missing += $checkpointPath }
     $reason = 'ORIENTATION GATE: before this action, read the following durable workspace files to EOF: ' + ($missing -join '; ')
-    [Console]::Error.WriteLine($reason)
-    exit 2
+    # Block with the documented JSON deny shape on stdout and exit 0. Codex 0.164.0-alpha.11.1
+    # reported this PowerShell hook's exit 2 + stderr as "Failed" and let the call run; the JSON
+    # deny was enforced ("PreToolUse Blocked") in a live codex exec probe on 2026-10-28.
+    $deny = @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; permissionDecision = 'deny'; permissionDecisionReason = $reason } } | ConvertTo-Json -Compress -Depth 4
+    [Console]::Out.Write($deny)
+    exit 0
 }
 catch {
     # Fail open so a hook bug cannot wedge Codex.

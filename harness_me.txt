@@ -350,9 +350,10 @@ If only this guide is available, use Appendix A.
   `~/.codex/hooks.json`; tell the user to open `/hooks` in Codex and trust each new hook.
   Verify with `powershell.exe -NoProfile -File <installed folder>/orient_gate_tests.ps1`
   (absolute path; expect 16/16). The gate is a reminder that records read requests, not
-  proof of a read. Only the SessionStart receipt has been seen working on Codex: in one
-  `codex exec` test a command the gate should block ran anyway, cause unknown. Say both in
-  the final report, so the user does not expect Codex to block.
+  proof of a read. It blocks with Codex's JSON deny form, which live `codex exec` probes on
+  Codex 0.164.0-alpha.11.1 enforced; after the user trusts the hooks in `/hooks`, check it
+  once by asking Codex to run a command in a project before reading its files (it should be
+  blocked), and say the result in the final report.
 
 Keep hook policies in separate matcher objects. Do not merge them into one broad matcher.
 

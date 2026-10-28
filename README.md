@@ -74,17 +74,18 @@ has been verified on that hardware.
 ### Codex hooks (Windows PowerShell)
 
 [`hooks/codex/`](hooks/codex/) is a smaller hook set in Codex's own format: a session
-receipt, an orientation gate and a compaction reminder. The gate is a reminder, not proof
-of a full read: it records that a read command naming your project's `CLAUDE.md` and
+receipt, an orientation gate and a compaction reminder. The gate is not proof of a full
+read: it records that a read command naming your project's `CLAUDE.md` and
 `CHECKPOINT.md` was run, and blocks other local actions until both were. The Claude Code
 `guard.ps1` is left out, because it assumes MSYS bash and Codex runs shell commands in
 PowerShell on Windows.
 
-**What Codex enforces today:** only the session receipt has been seen working on Codex. In
-one `codex exec` test on Codex 0.164.0-alpha.11.1, a command the gate should block ran
-anyway, with Codex reporting some hooks as "Failed"; the cause is not yet known. The
-scripts themselves pass their tests, so treat the gate as a reminder until your own Codex
-shows it blocking.
+**What Codex enforces:** in live `codex exec` probes on Codex 0.164.0-alpha.11.1 (Windows),
+the gate blocked a command before both files were read (Codex printed "PreToolUse
+Blocked") and let it run after both were read. The gate answers with Codex's JSON
+`permissionDecision: "deny"`: an earlier version used exit code 2 with the reason on
+stderr, which Codex reported as "Failed" and did not enforce for this PowerShell hook. If
+you write your own Codex hooks on Windows, use the JSON form.
 
 1. Copy the `hooks/codex/` folder to `~/.codex/hooks/harness/`.
 2. In its `hooks.json`, replace every `<HOOKS_DIR>` with that folder's absolute path using
