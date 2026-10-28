@@ -349,7 +349,7 @@ If only this guide is available, use Appendix A.
   that folder's absolute path using forward slashes; merge the result into
   `~/.codex/hooks.json`; tell the user to open `/hooks` in Codex and trust each new hook.
   Verify with `powershell.exe -NoProfile -File <installed folder>/orient_gate_tests.ps1`
-  (absolute path; expect 13/13). The gate is a reminder that records read requests, not
+  (absolute path; expect 16/16). The gate is a reminder that records read requests, not
   proof of a read. Only the SessionStart receipt has been seen working on Codex: in one
   `codex exec` test a command the gate should block ran anyway, cause unknown. Say both in
   the final report, so the user does not expect Codex to block.

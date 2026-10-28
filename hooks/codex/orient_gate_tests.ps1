@@ -171,6 +171,30 @@ $sid = New-Sid
 $r = Invoke-Script $gate (New-Event $sid $fixture ($readCheckpoint + '; npm test'))
 Check 'l: CHECKPOINT read chained to npm test, CLAUDE.md unread, exits 2' ($r.Exit -eq 2) ("exit=" + $r.Exit)
 
+# n: a blocked chained call records nothing: both reads chained to npm test exit 2, and the next npm test still exits 2.
+$sid = New-Sid
+$r1 = Invoke-Script $gate (New-Event $sid $fixture ($readClaude + '; ' + $readCheckpoint + '; npm test'))
+$r = Invoke-Script $gate (New-Event $sid $fixture $npm)
+Check 'n: reads chained to npm test exit 2 and set no flag' (($r1.Exit -eq 2) -and ($r.Exit -eq 2)) ("first=" + $r1.Exit + " exit=" + $r.Exit)
+
+# o: search patterns and redirections are not reads.
+$sid = New-Sid
+$r1 = Invoke-Script $gate (New-Event $sid $fixture "Select-String -InputObject 'hello' -Pattern 'CLAUDE.md CHECKPOINT.md'")
+$r2 = Invoke-Script $gate (New-Event $sid $fixture ($readClaude + ' > copied.txt'))
+$r = Invoke-Script $gate (New-Event $sid $fixture $npm)
+Check 'o: Select-String pattern and a redirected read are refused, npm test exits 2' (($r1.Exit -eq 2) -and ($r2.Exit -eq 2) -and ($r.Exit -eq 2)) ("sls=" + $r1.Exit + " redirect=" + $r2.Exit + " exit=" + $r.Exit)
+
+# p: a quoted path containing & is one path: both reads in a folder named A&B pass, then npm test passes.
+$amp = Join-Path $base 'A&B'
+New-Item -ItemType Directory -Force -Path $amp | Out-Null
+Set-Content -LiteralPath (Join-Path $amp 'CLAUDE.md') -Value '# a'
+Set-Content -LiteralPath (Join-Path $amp 'CHECKPOINT.md') -Value '# b'
+$sid = New-Sid
+$r1 = Invoke-Script $gate (New-Event $sid $amp ("Get-Content -LiteralPath '" + (Join-Path $amp 'CLAUDE.md') + "' -Raw"))
+$r2 = Invoke-Script $gate (New-Event $sid $amp ("Get-Content '" + (Join-Path $amp 'CHECKPOINT.md') + "' | Select-Object -First 50"))
+$r = Invoke-Script $gate (New-Event $sid $amp $npm)
+Check 'p: quoted A&B paths read (exit 0, 0), then npm test exits 0' (($r1.Exit -eq 0) -and ($r2.Exit -eq 0) -and ($r.Exit -eq 0)) ("r1=" + $r1.Exit + " r2=" + $r2.Exit + " exit=" + $r.Exit)
+
 # m: reads in project A do not release actions in project B in the same session.
 $sid = New-Sid
 $null = Invoke-Script $gate (New-Event $sid $fixture $readClaude)

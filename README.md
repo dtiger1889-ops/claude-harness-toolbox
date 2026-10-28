@@ -170,7 +170,8 @@ against the harness:
 
 - **154 paired Claude Code trials** (two-sided Wilcoxon on paired differences) found
   that **no task got cheaper with the harness**. On trivial tasks, or when the prompt
-  already says where to look, it cost 14–31% more; everywhere else, including the
+  already says where to look, it cost 14–31% more; with the harness pre-built on one
+  structured task it cost 7% more; everywhere else, including the
   multi-folder exploration tasks it was built for, it was roughly cost-neutral (−5% to
   +6%, not significant). An earlier version of this README claimed 25–45% savings on
   exploratory work; that came from a counting error in the original analysis and was

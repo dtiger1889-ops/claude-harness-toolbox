@@ -86,47 +86,44 @@ try {
     $checkpointFlag = if ($checkpointNorm) { Join-Path $tempRoot ("codex_orient_{0}.{1}.checkpoint.flag" -f $safeSessionId, (Get-PathKey $checkpointNorm)) } else { $null }
 
     # Allow the orientation reads themselves and record that they were requested. The command is
-    # split into segments (; | & and newlines). A segment counts as a read only when its FIRST word
-    # is a read verb, and only the paths inside that segment count, resolved against cwd. The whole
-    # call is let through as an orientation read only when every segment is a read or a pipeline
-    # helper (Select-Object, Out-String, Measure-Object, head, tail), so a read chained to another
-    # command, or read words inside a string (Write-Output 'cat CLAUDE.md'), never passes.
+    # parsed with PowerShell's own parser, so quoting, ; | & and nesting are read the way the shell
+    # reads them. The call counts as an orientation read only when it parses cleanly, every command
+    # in it is a file read (Get-Content, gc, cat, type, more) or a pipeline helper (Select-Object,
+    # Out-String, Measure-Object), and it has no redirection, sub-expression or script block. Only
+    # the plain string arguments of the read commands count as paths, resolved against cwd. Flags
+    # are written only after the whole call is accepted, so a blocked call records nothing.
     if ($tool -eq 'Bash') {
-        $readVerb = '(?i)^(Get-Content|gc|cat|Select-String|sls|type|more|rg|head|tail)$'
-        $helperVerb = '(?i)^(Select-Object|select|Out-String|Measure-Object|head|tail|more)$'
-        $segments = @($command -split '\|\||&&|[;|&\r\n]' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-        $allReadish = $segments.Count -gt 0
-        $matchedAny = $false
-        foreach ($seg in $segments) {
-            $first = ($seg -split '\s+', 2)[0]
-            if ($first -notmatch $readVerb) {
-                if ($first -notmatch $helperVerb) { $allReadish = $false }
-                continue
-            }
-            $named = @()
-            $rest = $seg
-            # Absolute paths first (they may contain spaces), then relative tokens in what is left.
-            foreach ($m in [regex]::Matches($seg, '(?i)[A-Za-z]:[\\/][^''"`;|<>\r\n]*?(?:CLAUDE|CHECKPOINT)\.md\b')) {
-                $named += $m.Value
-                $rest = $rest.Replace($m.Value, ' ')
-            }
-            foreach ($m in [regex]::Matches($rest, '(?i)[^\s''"`;|&<>()=,]*(?:CLAUDE|CHECKPOINT)\.md\b')) {
-                $named += $m.Value
-            }
-            foreach ($n in $named) {
-                $norm = Get-NormalPath $n $cwd
+        $readVerb = '(?i)^(Get-Content|gc|cat|type|more)$'
+        $helperVerb = '(?i)^(Select-Object|select|Out-String|Measure-Object)$'
+        $tokens = $null; $parseErrors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseInput($command, [ref]$tokens, [ref]$parseErrors)
+        $commands = @($ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] }, $true))
+        $unsafe = @($ast.FindAll({ param($n)
+                    ($n -is [System.Management.Automation.Language.RedirectionAst]) -or
+                    ($n -is [System.Management.Automation.Language.SubExpressionAst]) -or
+                    ($n -is [System.Management.Automation.Language.ScriptBlockExpressionAst]) -or
+                    ($n -is [System.Management.Automation.Language.CommandExpressionAst] -and $n.Parent -is [System.Management.Automation.Language.PipelineAst] -and $n.Parent.PipelineElements[0] -eq $n)
+                }, $true))
+        $allReadish = (@($parseErrors).Count -eq 0) -and ($commands.Count -gt 0) -and ($unsafe.Count -eq 0)
+        $pending = @()
+        foreach ($c in $commands) {
+            $name = [string]$c.GetCommandName()
+            if ($name -match $helperVerb) { continue }
+            if ($name -notmatch $readVerb) { $allReadish = $false; continue }
+            foreach ($el in @($c.CommandElements | Select-Object -Skip 1)) {
+                if ($el -isnot [System.Management.Automation.Language.StringConstantExpressionAst]) { continue }
+                $norm = Get-NormalPath ([string]$el.Value) $cwd
                 if (-not $norm) { continue }
-                if ($claudeNorm -and ($norm -ieq $claudeNorm)) {
-                    Set-Content -LiteralPath $claudeFlag -Value 'requested' -ErrorAction SilentlyContinue
-                    $matchedAny = $true
-                }
-                if ($checkpointNorm -and ($norm -ieq $checkpointNorm)) {
-                    Set-Content -LiteralPath $checkpointFlag -Value 'requested' -ErrorAction SilentlyContinue
-                    $matchedAny = $true
-                }
+                if ($claudeNorm -and ($norm -ieq $claudeNorm)) { $pending += $claudeFlag }
+                if ($checkpointNorm -and ($norm -ieq $checkpointNorm)) { $pending += $checkpointFlag }
             }
         }
-        if ($matchedAny -and $allReadish) { exit 0 }
+        if ($allReadish -and $pending.Count -gt 0) {
+            foreach ($f in ($pending | Select-Object -Unique)) {
+                Set-Content -LiteralPath $f -Value 'requested' -ErrorAction SilentlyContinue
+            }
+            exit 0
+        }
     }
 
     $claudeReady = (-not $claudeFlag) -or (Test-Path -LiteralPath $claudeFlag)
