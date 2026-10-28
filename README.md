@@ -74,7 +74,9 @@ has been verified on that hardware.
 ### Codex hooks (Windows PowerShell)
 
 [`hooks/codex/`](hooks/codex/) is a smaller hook set in Codex's own format: a session
-receipt, an orientation gate and a compaction reminder. The gate is not proof of a full
+receipt and an orientation gate. There is no compaction reminder: Codex ignores plain text from
+a PreCompact hook and gives that hook no way to reach the model (only a UI warning). The
+session receipt covers it instead, since it re-runs after compaction. The gate is not proof of a full
 read: it records that a read command naming your project's `CLAUDE.md` and
 `CHECKPOINT.md` was run, and blocks other local actions until both were. The Claude Code
 `guard.ps1` is left out, because it assumes MSYS bash and Codex runs shell commands in
@@ -83,9 +85,11 @@ PowerShell on Windows.
 **What Codex enforces:** in live `codex exec` probes on Codex 0.164.0-alpha.11.1 (Windows),
 the gate blocked a command before both files were read (Codex printed "PreToolUse
 Blocked") and let it run after both were read. The gate answers with Codex's JSON
-`permissionDecision: "deny"`: an earlier version used exit code 2 with the reason on
-stderr, which Codex reported as "Failed" and did not enforce for this PowerShell hook. If
-you write your own Codex hooks on Windows, use the JSON form.
+`permissionDecision: "deny"`. Codex's docs also accept exit code 2 with the reason on
+stderr, but on the maintainer's PC `powershell.exe` hooks that blocked that way were reported
+"Failed" and the command ran, while the same checks answering with the JSON were enforced;
+why exit 2 failed there was not determined. If your own Windows Codex hooks block with exit 2,
+test that Codex actually stops the command.
 
 1. Copy the `hooks/codex/` folder to `~/.codex/hooks/harness/`.
 2. In its `hooks.json`, replace every `<HOOKS_DIR>` with that folder's absolute path using

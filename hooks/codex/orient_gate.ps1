@@ -89,12 +89,17 @@ try {
     # parsed with PowerShell's own parser, so quoting, ; | & and nesting are read the way the shell
     # reads them. The call counts as an orientation read only when it parses cleanly, every command
     # in it is a file read (Get-Content, gc, cat, type, more) or a pipeline helper (Select-Object,
-    # Out-String, Measure-Object), and it has no redirection, sub-expression or script block. Only
-    # the plain string arguments of the read commands count as paths, resolved against cwd. Flags
-    # are written only after the whole call is accepted, so a blocked call records nothing.
+    # Out-String, Measure-Object), every top-level statement is a plain pipeline (no function
+    # definitions, assignments or control flow), and it has no redirection, sub-expression or script
+    # block. Paths are bound like Get-Content binds them: positional values and -Path / -LiteralPath
+    # (also -PSPath, -LP, the colon form and literal arrays such as CLAUDE.md,CHECKPOINT.md); values of
+    # other options such as -Delimiter are skipped. Flags are written only after the whole call is
+    # accepted, so a blocked call records nothing.
     if ($tool -eq 'Bash') {
         $readVerb = '(?i)^(Get-Content|gc|cat|type|more)$'
         $helperVerb = '(?i)^(Select-Object|select|Out-String|Measure-Object)$'
+        $pathParam = '(?i)^(Path|LiteralPath|PSPath|LP)$'
+        $switchParam = '(?i)^(Raw|Force|Wait|AsByteStream|Verbose|Debug)$'
         $tokens = $null; $parseErrors = $null
         $ast = [System.Management.Automation.Language.Parser]::ParseInput($command, [ref]$tokens, [ref]$parseErrors)
         $commands = @($ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] }, $true))
@@ -102,17 +107,42 @@ try {
                     ($n -is [System.Management.Automation.Language.RedirectionAst]) -or
                     ($n -is [System.Management.Automation.Language.SubExpressionAst]) -or
                     ($n -is [System.Management.Automation.Language.ScriptBlockExpressionAst]) -or
+                    ($n -is [System.Management.Automation.Language.FunctionDefinitionAst]) -or
                     ($n -is [System.Management.Automation.Language.CommandExpressionAst] -and $n.Parent -is [System.Management.Automation.Language.PipelineAst] -and $n.Parent.PipelineElements[0] -eq $n)
                 }, $true))
-        $allReadish = (@($parseErrors).Count -eq 0) -and ($commands.Count -gt 0) -and ($unsafe.Count -eq 0)
+        $statements = @()
+        if ($ast.EndBlock) { $statements = @($ast.EndBlock.Statements) }
+        $nonPipeline = @($statements | Where-Object { $_ -isnot [System.Management.Automation.Language.PipelineAst] })
+        $allReadish = (@($parseErrors).Count -eq 0) -and ($commands.Count -gt 0) -and ($unsafe.Count -eq 0) -and
+            ($nonPipeline.Count -eq 0) -and (-not $ast.BeginBlock) -and (-not $ast.ProcessBlock) -and (-not $ast.ParamBlock)
         $pending = @()
         foreach ($c in $commands) {
             $name = [string]$c.GetCommandName()
             if ($name -match $helperVerb) { continue }
             if ($name -notmatch $readVerb) { $allReadish = $false; continue }
-            foreach ($el in @($c.CommandElements | Select-Object -Skip 1)) {
-                if ($el -isnot [System.Management.Automation.Language.StringConstantExpressionAst]) { continue }
-                $norm = Get-NormalPath ([string]$el.Value) $cwd
+            # Bind path arguments: positional values, -Path/-LiteralPath values; skip other options' values.
+            $values = @()
+            $els = @($c.CommandElements | Select-Object -Skip 1)
+            for ($e = 0; $e -lt $els.Count; $e++) {
+                $el = $els[$e]
+                if ($el -is [System.Management.Automation.Language.CommandParameterAst]) {
+                    $pn = [string]$el.ParameterName
+                    if ($el.Argument) { if ($pn -match $pathParam) { $values += $el.Argument } }
+                    elseif ($pn -match $pathParam) { if ($e + 1 -lt $els.Count) { $values += $els[$e + 1]; $e++ } }
+                    elseif ($pn -notmatch $switchParam) { $e++ }
+                    continue
+                }
+                $values += $el
+            }
+            $strings = @()
+            foreach ($v in $values) {
+                if ($v -is [System.Management.Automation.Language.StringConstantExpressionAst]) { $strings += [string]$v.Value }
+                elseif ($v -is [System.Management.Automation.Language.ArrayLiteralAst]) {
+                    foreach ($x in @($v.Elements)) { if ($x -is [System.Management.Automation.Language.StringConstantExpressionAst]) { $strings += [string]$x.Value } }
+                }
+            }
+            foreach ($s in $strings) {
+                $norm = Get-NormalPath $s $cwd
                 if (-not $norm) { continue }
                 if ($claudeNorm -and ($norm -ieq $claudeNorm)) { $pending += $claudeFlag }
                 if ($checkpointNorm -and ($norm -ieq $checkpointNorm)) { $pending += $checkpointFlag }
@@ -134,9 +164,11 @@ try {
     if (-not $claudeReady) { $missing += $claudePath }
     if (-not $checkpointReady) { $missing += $checkpointPath }
     $reason = 'ORIENTATION GATE: before this action, read the following durable workspace files to EOF: ' + ($missing -join '; ')
-    # Block with the documented JSON deny shape on stdout and exit 0. Codex 0.164.0-alpha.11.1
-    # reported this PowerShell hook's exit 2 + stderr as "Failed" and let the call run; the JSON
-    # deny was enforced ("PreToolUse Blocked") in a live codex exec probe on 2026-10-28.
+    # Block with the documented JSON deny shape on stdout and exit 0. The Codex docs also accept
+    # exit 2 + stderr, but on the maintainer's Windows PC (Codex 0.164.0-alpha.11.1, 2026-10-28)
+    # powershell.exe -File hooks that blocked with exit 2 were reported "Failed" and the command ran,
+    # while the same checks answering with this JSON were enforced ("PreToolUse Blocked"). Why exit 2
+    # failed there was not determined.
     $deny = @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; permissionDecision = 'deny'; permissionDecisionReason = $reason } } | ConvertTo-Json -Compress -Depth 4
     [Console]::Out.Write($deny)
     exit 0

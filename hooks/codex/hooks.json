@@ -23,17 +23,6 @@
           }
         ]
       }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "manual|auto",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -NoProfile -Command \"if (Test-Path CHECKPOINT.md) { Write-Output 'REMINDER: Context is about to be compacted. If CHECKPOINT.md in the current project has not been updated this session, rewrite it now with compressed state before proceeding.' }\""
-          }
-        ]
-      }
     ]
   }
 }

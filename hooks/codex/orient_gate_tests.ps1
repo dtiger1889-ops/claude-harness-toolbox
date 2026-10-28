@@ -7,15 +7,17 @@
 # Run (Windows PowerShell 5.1 or PowerShell 7):
 #   powershell.exe -NoProfile -File <this folder>/orient_gate_tests.ps1
 # Works from a clone or from the installed copy; it needs nothing outside this folder.
-# Optional: -HooksDir <folder holding the scripts and hooks.json>
+# Optional: -HooksDir <folder holding the scripts> -HooksJson <the hooks.json to check in i and j;
+# default <HooksDir>/hooks.json; for an installed copy pass your merged ~/.codex/hooks.json>
 param(
-    [string]$HooksDir = $PSScriptRoot
+    [string]$HooksDir = $PSScriptRoot,
+    [string]$HooksJson = ''
 )
 
 $ErrorActionPreference = 'Continue'
 $gate = Join-Path $HooksDir 'orient_gate.ps1'
 $session = Join-Path $HooksDir 'orient_session.ps1'
-$hooksJson = Join-Path $HooksDir 'hooks.json'
+$hooksJson = if ($HooksJson) { $HooksJson } else { Join-Path $HooksDir 'hooks.json' }
 $tempRoot = [System.IO.Path]::GetTempPath()
 $base = Join-Path $tempRoot ('codex_gate_tests_' + [guid]::NewGuid().ToString('N'))
 $fixture = Join-Path $base 'proj'
@@ -58,15 +60,22 @@ function New-Event {
 function Invoke-Script {
     param([string]$Script, [string]$Stdin)
     $out = $Stdin | & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Script 2>&1 | Out-String
-    $code = $LASTEXITCODE
-    # The gate blocks with a JSON permissionDecision "deny" on stdout and exit 0 (the form Codex
-    # enforces). In these checks "exits 2" means blocked: a valid deny counts as 2; a bare exit 2
-    # with no deny JSON counts as 99, because Codex does not enforce that form.
+    return [pscustomobject]@{ Exit = (Get-Decision $LASTEXITCODE $out); Text = $out }
+}
+
+# The gate blocks with a JSON deny on stdout and exit 0, the form this suite requires because a
+# bare exit 2 was not enforced on the maintainer's Codex (see orient_gate.ps1). In these checks
+# "exits 2" means blocked: a complete deny (hookEventName PreToolUse, permissionDecision deny, a
+# reason) counts as 2; a bare exit 2 counts as 99; anything else keeps its exit code.
+function Get-Decision([int]$Code, [string]$Out) {
     $isDeny = $false
-    try { $isDeny = (($out | ConvertFrom-Json).hookSpecificOutput.permissionDecision -eq 'deny') } catch {}
-    if ($code -eq 0 -and $isDeny) { $code = 2 }
-    elseif ($code -eq 2) { $code = 99 }
-    return [pscustomobject]@{ Exit = $code; Text = $out }
+    try {
+        $h = ($Out | ConvertFrom-Json).hookSpecificOutput
+        $isDeny = ($h.hookEventName -eq 'PreToolUse') -and ($h.permissionDecision -eq 'deny') -and -not [string]::IsNullOrWhiteSpace([string]$h.permissionDecisionReason)
+    } catch {}
+    if ($Code -eq 0 -and $isDeny) { return 2 }
+    if ($Code -eq 2) { return 99 }
+    return $Code
 }
 
 # Flags are named codex_orient_<session>.<file key>.<kind>.flag; this matches any file key.
@@ -140,7 +149,13 @@ if (Test-Path $hooksJson) {
     $dirFwd = (Resolve-Path -LiteralPath $HooksDir).Path -replace '\\', '/'
     $text = (Get-Content -LiteralPath $hooksJson -Raw).Replace('<HOOKS_DIR>', $dirFwd)
     $leftover = $text -match '<HOOKS_DIR>'
-    $paths = [regex]::Matches($text, '-File\s+\\"([^"\\]+)\\"') | ForEach-Object { $_.Groups[1].Value }
+    # Read the decoded command strings, so forward-slash and JSON-escaped backslash paths both work.
+    $cmds = @()
+    try {
+        $cfgI = $text | ConvertFrom-Json
+        foreach ($ev in $cfgI.hooks.PSObject.Properties) { foreach ($en in @($ev.Value)) { foreach ($hk in @($en.hooks)) { $cmds += [string]$hk.command } } }
+    } catch {}
+    $paths = foreach ($cm in $cmds) { [regex]::Matches($cm, '-File\s+"([^"]+)"') | ForEach-Object { $_.Groups[1].Value } }
     $allResolve = (@($paths).Count -ge 2) -and (@($paths | Where-Object { -not (Test-Path -LiteralPath $_) }).Count -eq 0)
 }
 Check 'i: hooks.json script paths resolve, no leftover placeholder' ($allResolve -and -not $leftover) ("resolve=$allResolve leftover=$leftover")
@@ -160,7 +175,7 @@ if (Test-Path $hooksJson) {
         foreach ($h in @($entry.hooks)) {
             $sb = [scriptblock]::Create('$input | ' + [string]$h.command)
             $out = (New-Event $sid $fixture 'Get-Content D:\Work\notes.txt') | & $sb 2>&1 | Out-String
-            $codes += $LASTEXITCODE
+            $codes += (Get-Decision $LASTEXITCODE $out)
             $jText += $out
         }
     }
@@ -202,6 +217,29 @@ $r1 = Invoke-Script $gate (New-Event $sid $amp ("Get-Content -LiteralPath '" + (
 $r2 = Invoke-Script $gate (New-Event $sid $amp ("Get-Content '" + (Join-Path $amp 'CHECKPOINT.md') + "' | Select-Object -First 50"))
 $r = Invoke-Script $gate (New-Event $sid $amp $npm)
 Check 'p: quoted A&B paths read (exit 0, 0), then npm test exits 0' (($r1.Exit -eq 0) -and ($r2.Exit -eq 0) -and ($r.Exit -eq 0)) ("r1=" + $r1.Exit + " r2=" + $r2.Exit + " exit=" + $r.Exit)
+
+# q: a function definition or a shadowed reader is not a read, so it releases nothing.
+$sid = New-Sid
+$r1 = Invoke-Script $gate (New-Event $sid $fixture 'function unused { Get-Content CLAUDE.md; Get-Content CHECKPOINT.md }')
+$r2 = Invoke-Script $gate (New-Event $sid $fixture 'function more { }; more CLAUDE.md CHECKPOINT.md')
+$r = Invoke-Script $gate (New-Event $sid $fixture $npm)
+Check 'q: function definitions are refused and release nothing, npm test exits 2' (($r1.Exit -eq 2) -and ($r2.Exit -eq 2) -and ($r.Exit -eq 2)) ("def=" + $r1.Exit + " shadow=" + $r2.Exit + " exit=" + $r.Exit)
+
+# r: a literal array and the -Path: colon form are real reads of both files.
+$sid = New-Sid
+$r1 = Invoke-Script $gate (New-Event $sid $fixture 'Get-Content CLAUDE.md,CHECKPOINT.md')
+$r = Invoke-Script $gate (New-Event $sid $fixture $npm)
+$sid2 = New-Sid
+$null = Invoke-Script $gate (New-Event $sid2 $fixture 'Get-Content -Path:CLAUDE.md')
+$null = Invoke-Script $gate (New-Event $sid2 $fixture 'Get-Content -LiteralPath ./CHECKPOINT.md -Raw')
+$r2 = Invoke-Script $gate (New-Event $sid2 $fixture $npm)
+Check 'r: array read and -Path:/-LiteralPath reads pass, then npm test exits 0' (($r1.Exit -eq 0) -and ($r.Exit -eq 0) -and ($r2.Exit -eq 0)) ("array=" + $r1.Exit + " after=" + $r.Exit + " colon=" + $r2.Exit)
+
+# s: a file name given as another option's value (-Delimiter) is not a read of that file.
+$sid = New-Sid
+$r1 = Invoke-Script $gate (New-Event $sid $fixture 'Get-Content missing.txt -Delimiter CLAUDE.md; Get-Content missing.txt -Delimiter CHECKPOINT.md')
+$r = Invoke-Script $gate (New-Event $sid $fixture $npm)
+Check 's: -Delimiter values are not reads, npm test exits 2' (($r1.Exit -eq 2) -and ($r.Exit -eq 2)) ("first=" + $r1.Exit + " exit=" + $r.Exit)
 
 # m: reads in project A do not release actions in project B in the same session.
 $sid = New-Sid

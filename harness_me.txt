@@ -349,7 +349,7 @@ If only this guide is available, use Appendix A.
   that folder's absolute path using forward slashes; merge the result into
   `~/.codex/hooks.json`; tell the user to open `/hooks` in Codex and trust each new hook.
   Verify with `powershell.exe -NoProfile -File <installed folder>/orient_gate_tests.ps1`
-  (absolute path; expect 16/16). The gate is a reminder that records read requests, not
+  (absolute path; expect 19/19). The gate is a reminder that records read requests, not
   proof of a read. It blocks with Codex's JSON deny form, which live `codex exec` probes on
   Codex 0.164.0-alpha.11.1 enforced; after the user trusts the hooks in `/hooks`, check it
   once by asking Codex to run a command in a project before reading its files (it should be
