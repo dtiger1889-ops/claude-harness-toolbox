@@ -73,12 +73,18 @@ has been verified on that hardware.
 
 ### Codex hooks (Windows PowerShell)
 
-[`hooks/codex/`](hooks/codex/) is a smaller hook set in Codex's own format. It is a reminder
-gate, not proof of a full read: it records that a read command naming your `CLAUDE.md` and
-`CHECKPOINT.md` was requested, and blocks other local actions until both were. Only the
-SessionStart receipt is shown running on Codex so far; the gate, guard and compaction
-reminder are configured but not shown running, and Codex 0.164.0-alpha.11.1 was observed
-running them without enforcing the block in `codex exec`.
+[`hooks/codex/`](hooks/codex/) is a smaller hook set in Codex's own format: a session
+receipt, an orientation gate and a compaction reminder. The gate is a reminder, not proof
+of a full read: it records that a read command naming your project's `CLAUDE.md` and
+`CHECKPOINT.md` was run, and blocks other local actions until both were. The Claude Code
+`guard.ps1` is left out, because it assumes MSYS bash and Codex runs shell commands in
+PowerShell on Windows.
+
+**What Codex enforces today:** only the session receipt has been seen working on Codex. In
+one `codex exec` test on Codex 0.164.0-alpha.11.1, a command the gate should block ran
+anyway, with Codex reporting some hooks as "Failed"; the cause is not yet known. The
+scripts themselves pass their tests, so treat the gate as a reminder until your own Codex
+shows it blocking.
 
 1. Copy the `hooks/codex/` folder to `~/.codex/hooks/harness/`.
 2. In its `hooks.json`, replace every `<HOOKS_DIR>` with that folder's absolute path using
@@ -89,7 +95,9 @@ running them without enforcing the block in `codex exec`.
 4. Open `/hooks` in Codex and trust each new hook: Codex keeps changed or new hooks inactive
    until their hash is approved.
 
-Check the scripts with `powershell.exe -NoProfile -File hooks/codex/orient_gate_tests.ps1`.
+Check the scripts with `powershell.exe -NoProfile -File <folder>/orient_gate_tests.ps1`,
+where `<folder>` is your clone's `hooks/codex` or the installed `~/.codex/hooks/harness`
+(absolute path); it needs nothing outside that folder.
 
 ## What's inside
 
@@ -147,7 +155,7 @@ Copy the scripts into `~/.claude/hooks/` and merge the matching `settings-*.exam
 | `configuration-guide.md` | The optional configuration tour: permission and settings scope, hooks, skills, MCP, memory choice, compaction, and context-budget checks. Cosmetic settings and model rankings are deliberately excluded. |
 | `maintaining-the-harness.md` | The human maintenance procedure that was deliberately removed from the installer: file budgets, the two-pass rulebook diet, contradiction checks, and outside-audit workflow. |
 | `design-history.md` | A dated record of the public patterns reviewed, what this toolbox adopted or declined, and the choices it added. It is design history, not a current market survey. |
-| `when-it-pays-off.md` | The measured regime boundary in practical form: the three task-shape regimes, five rules of thumb that fall out of them, and the clearest winning regime. Read before installing if you're unsure the harness fits your work. |
+| `when-it-pays-off.md` | What the benchmark measured, in practical form: cost by task shape (no task got cheaper; trivial tasks cost more), the 2026-10-17 correction, five rules that still hold, and where the harness fits. Read before installing if you're unsure the harness fits your work. |
 | `token-efficiency.md` | Operating habits that keep sessions cheap: model-tier principles (deliberately no model names), the sub-agent cost gate, and file/reading habits like front-loading resume-critical sections. |
 | `optional-add-ons.md` | Concept sketches beyond the default install: a capture-first rants/musings folder and a Cowork sibling workspace layout, plus a pointer to the shipped Codex bridge. |
 
@@ -157,18 +165,21 @@ Per-project `CLAUDE.md` / `CHECKPOINT.md` skeletons and a baseline `.gitignore`.
 
 ## Why trust any of this
 
-The design choices are measured, not vibes:
+The design choices are measured, not vibes, including the measurement that came back
+against the harness:
 
-- **154 paired Claude Code trials** (paired Wilcoxon, p < 0.05) mapped the regime
-  boundary: the harness *hurts* on trivial or pre-oriented prompts (+35% to +136% output
-  tokens, +64% to +80% cache reads), is neutral on structured single-project tasks, and
-  wins clearly on exploratory multi-project work (−25% to −45% on read-side metrics).
-  Every trial ran on a single pinned model, `claude-sonnet-4-6` (run in early-to-mid
-  2026, predating the Claude 5 family) — these numbers describe that model's behavior,
-  not a claim about any other model. The whole experiment is published at
-  [**harness-benchmark-report**](https://github.com/dtiger1889-ops/harness-benchmark-report):
-  the report, the raw per-trial data, and the benchmark itself, so you can check any
-  number here or run a harness variant of your own against the same baselines.
+- **154 paired Claude Code trials** (two-sided Wilcoxon on paired differences) found
+  that **no task got cheaper with the harness**. On trivial tasks, or when the prompt
+  already says where to look, it cost 14–31% more; everywhere else, including the
+  multi-folder exploration tasks it was built for, it was roughly cost-neutral (−5% to
+  +6%, not significant). An earlier version of this README claimed 25–45% savings on
+  exploratory work; that came from a counting error in the original analysis and was
+  corrected on 2026-10-17. Every trial was one fresh session, so the harness's real job,
+  resuming work in a later session, was not tested. Every trial ran on a single pinned
+  model, `claude-sonnet-4-6` (early-to-mid 2026, before the Claude 5 family), so these
+  numbers describe that model only. The whole experiment, with the correction, the raw
+  per-trial data and the benchmark itself, is published at
+  [**harness-benchmark-report**](https://github.com/dtiger1889-ops/harness-benchmark-report).
 - **A 50-session audit** found the model self-classifies "am I already oriented?"
   unreliably (~1 in 5 actionable sessions acted before reading state). That killed the
   original prose rule and produced the orientation gate: read-only work is free
@@ -183,13 +194,11 @@ The design choices are measured, not vibes:
   the failures the skills above go after. Crawl your own transcripts before you copy the
   list; the problem you keep hitting may not be the one you'd guess.
 
-Two limits fell out of the same measurements, and they're worth knowing before you
-install rather than after. The harness buys tokens, not time. Exploratory tasks ran up to
-14% *slower* even while spending 25–45% fewer output tokens, because reading `CLAUDE.md`
-costs latency up front to save work later. And it does nothing for context-window
-pressure: no trial ever came close to filling a window, so there is no evidence here that
-a harness delays compaction. If what you want is a session that *feels* faster, or relief
-from hitting the context limit, this is the wrong tool for it.
+Two limits are worth knowing before you install rather than after. In a single fresh
+session the harness does not save money: what it offers is continuity across sessions,
+which the benchmark did not measure. And there is no evidence that it relieves
+context-window pressure, so if what you want is a cheaper single session or relief from
+hitting the context limit, this is the wrong tool for it.
 
 ## Design principles (the short version)
 

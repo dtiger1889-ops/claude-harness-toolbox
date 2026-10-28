@@ -1,29 +1,29 @@
-# Tests for the Codex hook set in this folder (orient_gate.ps1, orient_session.ps1, guard.ps1, hooks.json).
+# Tests for the Codex hook set in this folder (orient_gate.ps1, orient_session.ps1, hooks.json).
 # Events use the real Codex PreToolUse / SessionStart shape (fields from the schemas in the
 # openai/codex repo, codex-rs/hooks/schema/generated): session_id, transcript_path, cwd,
 # hook_event_name, model, permission_mode, turn_id, tool_name, tool_use_id, tool_input.command.
 # A shell command is tool_name "Bash" on Codex, including PowerShell commands.
 #
 # Run (Windows PowerShell 5.1 or PowerShell 7):
-#   powershell.exe -NoProfile -File hooks/codex/orient_gate_tests.ps1
-# Optional: -HooksDir <folder holding the scripts and hooks.json> -SharedGuard <path to hooks/guard.ps1>
+#   powershell.exe -NoProfile -File <this folder>/orient_gate_tests.ps1
+# Works from a clone or from the installed copy; it needs nothing outside this folder.
+# Optional: -HooksDir <folder holding the scripts and hooks.json>
 param(
-    [string]$HooksDir = $PSScriptRoot,
-    [string]$SharedGuard = (Join-Path $PSScriptRoot '..\guard.ps1')
+    [string]$HooksDir = $PSScriptRoot
 )
 
 $ErrorActionPreference = 'Continue'
 $gate = Join-Path $HooksDir 'orient_gate.ps1'
 $session = Join-Path $HooksDir 'orient_session.ps1'
-$guardCopy = Join-Path $HooksDir 'guard.ps1'
 $hooksJson = Join-Path $HooksDir 'hooks.json'
 $tempRoot = [System.IO.Path]::GetTempPath()
 $base = Join-Path $tempRoot ('codex_gate_tests_' + [guid]::NewGuid().ToString('N'))
 $fixture = Join-Path $base 'proj'
 $otherRoot = Join-Path $base 'other_root'
 $bare = Join-Path $base 'bare'
-New-Item -ItemType Directory -Force -Path $fixture, $otherRoot, $bare | Out-Null
-foreach ($d in @($fixture, $otherRoot)) {
+$projB = Join-Path $base 'projB'
+New-Item -ItemType Directory -Force -Path $fixture, $otherRoot, $bare, $projB | Out-Null
+foreach ($d in @($fixture, $otherRoot, $projB)) {
     Set-Content -LiteralPath (Join-Path $d 'CLAUDE.md') -Value '# test claude'
     Set-Content -LiteralPath (Join-Path $d 'CHECKPOINT.md') -Value '# test checkpoint'
 }
@@ -61,7 +61,8 @@ function Invoke-Script {
     return [pscustomobject]@{ Exit = $LASTEXITCODE; Text = $out }
 }
 
-function Flag-Path { param([string]$Sid, [string]$Kind) Join-Path $tempRoot ("codex_orient_{0}.{1}.flag" -f $Sid, $Kind) }
+# Flags are named codex_orient_<session>.<file key>.<kind>.flag; this matches any file key.
+function Flag-Path { param([string]$Sid, [string]$Kind) Join-Path $tempRoot ("codex_orient_{0}.*.{1}.flag" -f $Sid, $Kind) }
 
 function Check {
     param([string]$Name, [bool]$Ok, [string]$Detail = '')
@@ -124,11 +125,7 @@ $null = Invoke-Script $session (New-Event $sid $fixture '' 'SessionStart' 'clear
 $r = Invoke-Script $gate (New-Event $sid $fixture $npm)
 Check 'h: reads, then SessionStart clear, then npm test exits 2' ($r.Exit -eq 2) ("exit=" + $r.Exit)
 
-# i: guard copy is byte-identical to the shared guard, and every script path in hooks.json resolves.
-$same = $false
-if ((Test-Path $guardCopy) -and (Test-Path $SharedGuard)) {
-    $same = ((Get-FileHash $guardCopy -Algorithm SHA256).Hash -eq (Get-FileHash $SharedGuard -Algorithm SHA256).Hash)
-}
+# i: every script path in hooks.json resolves after placeholder substitution, none left over.
 $allResolve = $false
 $leftover = $true
 if (Test-Path $hooksJson) {
@@ -136,30 +133,55 @@ if (Test-Path $hooksJson) {
     $text = (Get-Content -LiteralPath $hooksJson -Raw).Replace('<HOOKS_DIR>', $dirFwd)
     $leftover = $text -match '<HOOKS_DIR>'
     $paths = [regex]::Matches($text, '-File\s+\\"([^"\\]+)\\"') | ForEach-Object { $_.Groups[1].Value }
-    $allResolve = (@($paths).Count -ge 3) -and (@($paths | Where-Object { -not (Test-Path -LiteralPath $_) }).Count -eq 0)
+    $allResolve = (@($paths).Count -ge 2) -and (@($paths | Where-Object { -not (Test-Path -LiteralPath $_) }).Count -eq 0)
 }
-Check 'i: guard copy identical to hooks/guard.ps1, hooks.json script paths resolve, no leftover placeholder' ($same -and $allResolve -and -not $leftover) ("same=$same resolve=$allResolve leftover=$leftover")
+Check 'i: hooks.json script paths resolve, no leftover placeholder' ($allResolve -and -not $leftover) ("resolve=$allResolve leftover=$leftover")
 
-# j: the guard command that hooks.json registers for Write|Edit|Bash|PowerShell blocks a backslash drive path.
+# j: after both reads, every registered PreToolUse command lets a PowerShell command with a
+# backslash path through (Codex runs shell commands in PowerShell on Windows; no MSYS false block).
 $j = $false
 $jText = ''
 if (Test-Path $hooksJson) {
     $dirFwd = (Resolve-Path -LiteralPath $HooksDir).Path -replace '\\', '/'
     $cfg = (Get-Content -LiteralPath $hooksJson -Raw).Replace('<HOOKS_DIR>', $dirFwd) | ConvertFrom-Json
-    $entry = $cfg.hooks.PreToolUse | Where-Object { $_.matcher -eq 'Write|Edit|Bash|PowerShell' } | Select-Object -First 1
-    if ($entry) {
-        $cmd = [string]$entry.hooks[0].command
-        $sb = [scriptblock]::Create('$input | ' + $cmd)
-        $out = (New-Event (New-Sid) $fixture 'ls D:\Projects') | & $sb 2>&1 | Out-String
-        $jText = $out
-        $j = ($LASTEXITCODE -eq 2) -and ($out -match 'BLOCKED by guard hook')
+    $sid = New-Sid
+    $null = Invoke-Script $gate (New-Event $sid $fixture $readClaude)
+    $null = Invoke-Script $gate (New-Event $sid $fixture $readCheckpoint)
+    $codes = @()
+    foreach ($entry in @($cfg.hooks.PreToolUse)) {
+        foreach ($h in @($entry.hooks)) {
+            $sb = [scriptblock]::Create('$input | ' + [string]$h.command)
+            $out = (New-Event $sid $fixture 'Get-Content D:\Work\notes.txt') | & $sb 2>&1 | Out-String
+            $codes += $LASTEXITCODE
+            $jText += $out
+        }
     }
+    $j = ($codes.Count -ge 1) -and (@($codes | Where-Object { $_ -ne 0 }).Count -eq 0)
 }
-Check 'j: registered guard command blocks an unquoted backslash drive path with exit 2' $j ($jText.Trim())
+Check 'j: registered PreToolUse commands allow a backslash-path PowerShell command after both reads' $j ($jText.Trim())
+
+# k: read words inside a string are not a read: no flag is set and npm test stays blocked.
+$sid = New-Sid
+$r1 = Invoke-Script $gate (New-Event $sid $fixture "Write-Output 'cat CLAUDE.md CHECKPOINT.md'")
+$r = Invoke-Script $gate (New-Event $sid $fixture $npm)
+Check 'k: Write-Output naming both files sets no flag (exit 2), then npm test exits 2' (($r1.Exit -eq 2) -and ($r.Exit -eq 2) -and -not (Test-Path (Flag-Path $sid 'claude'))) ("first=" + $r1.Exit + " exit=" + $r.Exit)
+
+# l: a read chained to another command is not let through as a read while CLAUDE.md is still unread.
+$sid = New-Sid
+$r = Invoke-Script $gate (New-Event $sid $fixture ($readCheckpoint + '; npm test'))
+Check 'l: CHECKPOINT read chained to npm test, CLAUDE.md unread, exits 2' ($r.Exit -eq 2) ("exit=" + $r.Exit)
+
+# m: reads in project A do not release actions in project B in the same session.
+$sid = New-Sid
+$null = Invoke-Script $gate (New-Event $sid $fixture $readClaude)
+$null = Invoke-Script $gate (New-Event $sid $fixture $readCheckpoint)
+$r = Invoke-Script $gate (New-Event $sid $projB $npm)
+Check 'm: project A reads, then npm test in project B exits 2' ($r.Exit -eq 2) ("exit=" + $r.Exit)
 
 # cleanup
 foreach ($s in $script:sessions) {
-    foreach ($k in 'claude', 'checkpoint') { Remove-Item -LiteralPath (Flag-Path $s $k) -Force -ErrorAction SilentlyContinue }
+    Get-ChildItem -LiteralPath $tempRoot -Filter ("codex_orient_{0}.*.flag" -f $s) -File -ErrorAction SilentlyContinue |
+        ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
 }
 Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item Env:\HARNESS_WORKSPACE_ROOT -ErrorAction SilentlyContinue

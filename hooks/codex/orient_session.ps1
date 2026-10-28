@@ -54,10 +54,10 @@ try {
     }
 
     $safeSessionId = $sessionId -replace '[^A-Za-z0-9_-]', '_'
-    foreach ($kind in @('claude', 'checkpoint')) {
-        $flagPath = Join-Path ([System.IO.Path]::GetTempPath()) ("codex_orient_{0}.{1}.flag" -f $safeSessionId, $kind)
-        Remove-Item -LiteralPath $flagPath -Force -ErrorAction SilentlyContinue
-    }
+    # Clears every orient_gate.ps1 flag this session holds (flags are named
+    # codex_orient_<session>.<file key>.<kind>.flag, one per required file).
+    Get-ChildItem -LiteralPath ([System.IO.Path]::GetTempPath()) -Filter ("codex_orient_{0}.*.flag" -f $safeSessionId) -File -ErrorAction SilentlyContinue |
+        ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
 
     $required = @()
     if (-not [string]::IsNullOrWhiteSpace($claudePath)) {

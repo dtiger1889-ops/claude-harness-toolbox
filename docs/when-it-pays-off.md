@@ -1,46 +1,52 @@
 # When the harness pays off (and when it doesn't)
 
 The harness is not a free win on every task. It was tested across 154 paired Claude Code
-trials (paired Wilcoxon, p < 0.05 unless noted), and the result is conditional: it pays
-off on some task shapes and adds tax on others. Knowing the regime boundary is the
-difference between deploying it well and over-applying it. The full experiment — report,
-raw per-trial data, and the benchmark itself — is published at
+trials (two-sided Wilcoxon signed-rank on the paired differences), all on one pinned
+model, `claude-sonnet-4-6`. The full experiment — report, raw per-trial data, and the
+benchmark itself — is published at
 [harness-benchmark-report](https://github.com/dtiger1889-ops/harness-benchmark-report).
 
-## Three regimes, measured
+## What was measured
 
-| Task shape | Effect | Why |
+| Task shape | Effect on cost | Why |
 |---|---|---|
-| Trivial or pre-oriented prompt (the prompt names the file/path) | **Harness HURTS** (+35% to +136% output tokens, +64% to +80% cache reads) | The agent runs the startup ritual, finds no useful state, and burns tokens narrating it. |
-| Structured single-project tasks | Neutral | Orientation cost ≈ orientation benefit. |
-| Exploratory multi-project tasks (the agent must pick which folders matter) | **Harness WINS BIG** (−25% to −45% on read-side metrics) | Per-project CLAUDE.md lets the agent classify folders without reading them. Compounds into less exploratory chatter. |
+| Trivial, or the prompt already says where to look | **Harness costs more** (+14% to +31%) | The agent runs the startup ritual, finds no useful state, and pays for it. |
+| Harness pre-built on one structured task | Costs a little more (+7%) | Orientation cost slightly exceeds its benefit. |
+| Everything else, including exploratory multi-project tasks | Roughly neutral (−5% to +6%, not significant) | Some token savings (on one task, 13% fewer cached reads) are offset by more cache writes, so the bill stays flat. |
 
-## Practical rules that fall out of this
+**Correction (2026-10-17).** Earlier versions of this page said the harness "wins big" on
+exploratory tasks (−25% to −45%). That figure came from a counting error in the original
+analysis, which counted most API calls two or three times; the benchmark report explains
+it in full. No task got cheaper with the harness.
+
+**What was not measured:** every trial was one fresh session. The harness exists to carry
+state from one session to the next, and that was never tested.
+
+## Practical rules that still hold
 
 1. **Don't make the agent self-judge "am I oriented?" — let read-only work be free and let a
    gate enforce the rest.** Read-only operations never need orientation, so a genuinely
-   pre-oriented prompt pays zero ritual tax automatically. For state-changing actions,
+   pre-oriented prompt pays less ritual tax automatically. For state-changing actions,
    enforce "read CHECKPOINT first" structurally with the orientation gate, not with a
    prose instruction. The maintainer originally shipped a self-judged "skip the ritual if
    pre-oriented" rule; a 50-session audit found the model applied it unreliably (acted
    before reading state in roughly 1 of 5 actionable sessions), so the rule was replaced
    by the gate.
-2. **Hierarchy isn't ceremony.** Per-project CLAUDE.md files added another ~22% output
-   savings, ~8% cache-read savings, and ~20% fewer logical turns on top of a
-   top-level-only harness for exploratory tasks. Keep them even when they feel small.
+2. **Hierarchy reads less but costs the same.** A full per-project hierarchy read less than
+   a single top-level file on exploratory tasks, but cost the same. Keep per-project files
+   for clarity and resumability, not for savings.
 3. **Stale CLAUDE.md is the actual production risk.** The benchmark used a frozen,
    accurate harness; in real use the danger is drift. Defend with the `Last updated:`
    line in each CHECKPOINT — it doubles as a "verified against reality" stamp.
-4. **Don't pitch this as "always faster."** Wall-clock didn't track tokens: exploratory
-   tasks saved 25–45% on output while costing up to +14% on duration (reading CLAUDE.md
-   adds latency even when it saves downstream work). Tokens cost money; wall-clock costs
-   patience. Two different axes.
-5. **The harness doesn't relieve context-window pressure.** Peak context was unaffected
-   across all 154 trials. It compresses what the agent *seeks out*, not what the agent needs
-   in flight. If you hit compaction, that's a separate problem the harness won't solve.
+4. **Don't pitch this as cheaper or faster.** In a single session it is at best
+   cost-neutral and costs more on trivial tasks. Its case is continuity: picking up work
+   in a later session without re-explaining it.
+5. **The harness doesn't relieve context-window pressure.** There is no evidence in the
+   benchmark that it delays compaction. If you hit compaction, that's a separate problem.
 
-## The clearest winning regime
+## Where it fits
 
-Multi-project personal work where the question is "which of these projects does the user
-mean?" That is exactly the shape the layout — projects as siblings under a single
-ledger — was designed for.
+Multi-project personal work that spans many sessions, where the question each time is
+"what was done, what's open, and which project does the user mean?" That is the shape
+the layout — projects as siblings under a single ledger — was designed for, and the part
+the benchmark has not yet tested.
