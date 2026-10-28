@@ -241,6 +241,23 @@ $r1 = Invoke-Script $gate (New-Event $sid $fixture 'Get-Content missing.txt -Del
 $r = Invoke-Script $gate (New-Event $sid $fixture $npm)
 Check 's: -Delimiter values are not reads, npm test exits 2' (($r1.Exit -eq 2) -and ($r.Exit -eq 2)) ("first=" + $r1.Exit + " exit=" + $r.Exit)
 
+# t: a trap body is not a read: the trap never runs when the real command succeeds.
+$sid = New-Sid
+$r1 = Invoke-Script $gate (New-Event $sid $fixture 'trap { Get-Content CLAUDE.md; Get-Content CHECKPOINT.md }; Get-Content unrelated.txt')
+$r = Invoke-Script $gate (New-Event $sid $fixture $npm)
+Check 't: a trap holding both reads is refused, npm test exits 2' (($r1.Exit -eq 2) -and ($r.Exit -eq 2)) ("trap=" + $r1.Exit + " exit=" + $r.Exit)
+
+# u: abbreviated path parameters bind as paths; a switch does not swallow the path after it.
+$sid = New-Sid
+$null = Invoke-Script $gate (New-Event $sid $fixture 'Get-Content -Lit CLAUDE.md')
+$null = Invoke-Script $gate (New-Event $sid $fixture 'Get-Content -UseTransaction CHECKPOINT.md')
+$r = Invoke-Script $gate (New-Event $sid $fixture $npm)
+$sid2 = New-Sid
+$null = Invoke-Script $gate (New-Event $sid2 $fixture 'Get-Content -Pa CLAUDE.md')
+$null = Invoke-Script $gate (New-Event $sid2 $fixture 'gc -Tail 20 -Ra CHECKPOINT.md')
+$r2 = Invoke-Script $gate (New-Event $sid2 $fixture $npm)
+Check 'u: -Lit, -Pa, -UseTransaction and -Tail 20 -Ra reads count, then npm test exits 0' (($r.Exit -eq 0) -and ($r2.Exit -eq 0)) ("lit=" + $r.Exit + " pa=" + $r2.Exit)
+
 # m: reads in project A do not release actions in project B in the same session.
 $sid = New-Sid
 $null = Invoke-Script $gate (New-Event $sid $fixture $readClaude)

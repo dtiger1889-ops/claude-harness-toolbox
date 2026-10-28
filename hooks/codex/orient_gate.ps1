@@ -98,8 +98,24 @@ try {
     if ($tool -eq 'Bash') {
         $readVerb = '(?i)^(Get-Content|gc|cat|type|more)$'
         $helperVerb = '(?i)^(Select-Object|select|Out-String|Measure-Object)$'
-        $pathParam = '(?i)^(Path|LiteralPath|PSPath|LP)$'
-        $switchParam = '(?i)^(Raw|Force|Wait|AsByteStream|Verbose|Debug)$'
+        # Get-Content's parameters (Windows PowerShell 5.1 and PowerShell 7) plus common parameters:
+        # p = takes a path, s = switch, v = takes another value. A name resolves like PowerShell does:
+        # exact match, else the one parameter it is an unambiguous prefix of; anything unresolved is
+        # treated as taking a value, so its argument is never counted as a read.
+        $gcParams = [ordered]@{
+            Path = 'p'; LiteralPath = 'p'; PSPath = 'p'; LP = 'p'
+            Raw = 's'; Force = 's'; Wait = 's'; AsByteStream = 's'; UseTransaction = 's'; Verbose = 's'; Debug = 's'
+            ReadCount = 'v'; TotalCount = 'v'; Head = 'v'; First = 'v'; Tail = 'v'; Last = 'v'; Filter = 'v'
+            Include = 'v'; Exclude = 'v'; Credential = 'v'; Delimiter = 'v'; Encoding = 'v'; Stream = 'v'
+            ErrorAction = 'v'; WarningAction = 'v'; InformationAction = 'v'; ErrorVariable = 'v'; WarningVariable = 'v'
+            InformationVariable = 'v'; OutVariable = 'v'; OutBuffer = 'v'; PipelineVariable = 'v'
+        }
+        function Resolve-ParamKind([string]$Name) {
+            foreach ($k in $gcParams.Keys) { if ($k -ieq $Name) { return $gcParams[$k] } }
+            $hits = @($gcParams.Keys | Where-Object { $_ -like "$Name*" })
+            if ($Name.Length -ge 2 -and $hits.Count -eq 1) { return $gcParams[$hits[0]] }
+            return 'v'
+        }
         $tokens = $null; $parseErrors = $null
         $ast = [System.Management.Automation.Language.Parser]::ParseInput($command, [ref]$tokens, [ref]$parseErrors)
         $commands = @($ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] }, $true))
@@ -108,6 +124,7 @@ try {
                     ($n -is [System.Management.Automation.Language.SubExpressionAst]) -or
                     ($n -is [System.Management.Automation.Language.ScriptBlockExpressionAst]) -or
                     ($n -is [System.Management.Automation.Language.FunctionDefinitionAst]) -or
+                    ($n -is [System.Management.Automation.Language.TrapStatementAst]) -or
                     ($n -is [System.Management.Automation.Language.CommandExpressionAst] -and $n.Parent -is [System.Management.Automation.Language.PipelineAst] -and $n.Parent.PipelineElements[0] -eq $n)
                 }, $true))
         $statements = @()
@@ -126,10 +143,10 @@ try {
             for ($e = 0; $e -lt $els.Count; $e++) {
                 $el = $els[$e]
                 if ($el -is [System.Management.Automation.Language.CommandParameterAst]) {
-                    $pn = [string]$el.ParameterName
-                    if ($el.Argument) { if ($pn -match $pathParam) { $values += $el.Argument } }
-                    elseif ($pn -match $pathParam) { if ($e + 1 -lt $els.Count) { $values += $els[$e + 1]; $e++ } }
-                    elseif ($pn -notmatch $switchParam) { $e++ }
+                    $kind = Resolve-ParamKind ([string]$el.ParameterName)
+                    if ($el.Argument) { if ($kind -eq 'p') { $values += $el.Argument } }
+                    elseif ($kind -eq 'p') { if ($e + 1 -lt $els.Count) { $values += $els[$e + 1]; $e++ } }
+                    elseif ($kind -eq 'v') { $e++ }
                     continue
                 }
                 $values += $el
