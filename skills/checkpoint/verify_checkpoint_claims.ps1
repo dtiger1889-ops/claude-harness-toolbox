@@ -37,6 +37,9 @@ $projRoot = Split-Path -Parent $ckPath
 # set HARNESS_NOTES_ROOT to let notes-relative paths in the file resolve.
 $WorkspaceRoot = if ($env:HARNESS_WORKSPACE_ROOT) { $env:HARNESS_WORKSPACE_ROOT } else { Split-Path -Parent $projRoot }
 $NotesRoot = $env:HARNESS_NOTES_ROOT
+# Owner gate tag: [owner] always counts; HARNESS_OWNER_TAG adds your own name (e.g. Sam -> [Sam]).
+$OwnerAlt = 'owner'
+if ($env:HARNESS_OWNER_TAG) { $OwnerAlt = 'owner|' + [regex]::Escape($env:HARNESS_OWNER_TAG.Trim('[', ']', ' ')) }
 $text = [System.IO.File]::ReadAllText($ckPath)
 $lines = [System.IO.File]::ReadAllLines($ckPath)
 $defects = @()
@@ -186,7 +189,7 @@ foreach ($ln in $lines) {
             else { $recentDate = $true }
         } catch {}
     }
-    if ($ln -match '\[owner\]') { $flag += 'owner-gated' }
+    if ($ln -match "\[($OwnerAlt)\]") { $flag += 'owner-gated' }
     if ($flag.Count -eq 0) { continue }
 
     $head = ($ln.Trim() -replace '^\-\s*', '')
@@ -260,7 +263,7 @@ function Judge-Item {
     param([string]$text, [string]$head)
     if ([string]::IsNullOrWhiteSpace($text)) { return }
     $h = ($head.Trim() -replace '^\-\s*', ''); if ($h.Length -gt 70) { $h = $h.Substring(0, 70) + '...' }
-    $gates = [regex]::Matches($text, '\[(owner|agent)\]').Count
+    $gates = [regex]::Matches($text, "\[($OwnerAlt|agent)\]").Count
     $cplx  = [regex]::Matches($text, '\[(low|high)\]').Count
     if ($text -match '\[(quick|moderate|heavy)\]|\[owner decides[^\]]*\]') { $script:tagPrompts += "RETIRED TAG (convert to [owner]/[agent] + [low]/[high]): $h" }
     if ($gates -ne 1 -or $cplx -ne 1) { $script:tagPrompts += "TAG PAIR MISSING (need one of [owner]/[agent] and one of [low]/[high]): $h"; return }

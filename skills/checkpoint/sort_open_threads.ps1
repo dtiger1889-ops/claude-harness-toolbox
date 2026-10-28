@@ -15,6 +15,9 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if (-not (Test-Path -LiteralPath $Checkpoint)) { Write-Output "[sort-threads] not found: $Checkpoint"; exit 0 }
+# Owner gate tag: [owner] always counts; HARNESS_OWNER_TAG adds your own name (same rule as the verifier).
+$ownerRe = '\[owner\]'
+if ($env:HARNESS_OWNER_TAG) { $ownerRe = '\[(owner|' + [regex]::Escape($env:HARNESS_OWNER_TAG.Trim('[', ']', ' ')) + ')\]' }
 
 $raw = [IO.File]::ReadAllText($Checkpoint)
 $nl = if ($raw.Contains("`r`n")) { "`r`n" } else { "`n" }
@@ -66,7 +69,7 @@ foreach ($it in $items) {
     # whole item (sub-bullets carry no tags, so nothing there can mislead). Real bug this
     # fixes: a head-only read bucketed every wrapped bullet in one project as untagged.
     $h = (@($it.head) + @($it.tail)) -join ' '
-    $gate = if ($h -match '\[owner\]') { 0 } elseif ($h -match '\[agent\]') { 1 } else { -1 }
+    $gate = if ($h -match $ownerRe) { 0 } elseif ($h -match '\[agent\]') { 1 } else { -1 }
     $cplx = if ($h -match '\[low\]') { 0 } elseif ($h -match '\[high\]') { 1 } else { -1 }
     $it.rank = if ($gate -lt 0 -or $cplx -lt 0) { 99 } else { $gate * 2 + $cplx }
 }

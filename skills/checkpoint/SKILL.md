@@ -69,6 +69,7 @@ For a dated thread older than 30 days, verify and prune if resolved, or add `[ke
 Configuration:
 - `HARNESS_WORKSPACE_ROOT` overrides the default parent directory used for cross-project paths.
 - `HARNESS_NOTES_ROOT` supplies the notes root when required.
+- `HARNESS_OWNER_TAG` names your own owner tag (for example `Sam` makes `[Sam]` count like `[owner]`).
 - `staleness: advisory` in the project's `.checkpoint-verify-ignore` changes stale-date errors to prompts; dead paths still fail.
 
 These checks detect structural claims and date patterns, not semantic correctness. Read and assess the evidence yourself.
