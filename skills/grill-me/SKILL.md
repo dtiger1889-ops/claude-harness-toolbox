@@ -17,7 +17,7 @@ Clarify requirements before producing a deliverable that would anchor the user t
 
 Use short, numbered rounds. Start with purpose, audience, surface, scope, and success criteria; follow up on uncertainties revealed by the answers. Scale the number of questions to the unresolved choices and consequences, rather than a fixed quota.
 
-Use a structured question tool when available and suitable, within its actual limits. Use free text when options would force an answer; plain numbered questions are the fallback. Avoid mixing delivery methods within a round.
+Use a structured question tool when available and suitable, within its actual limits. Use free text when options would force an answer; plain numbered questions are the fallback. When several answers can all be true at once, such as what would make the user send the result back, make the question multi-select rather than single choice, so no real answer has to be dropped. Avoid mixing delivery methods within a round.
 
 Consider, as relevant:
 
