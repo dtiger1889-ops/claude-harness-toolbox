@@ -4,14 +4,27 @@
 #
 # Usage:
 #   collect_decisions.ps1 [-ProjectDir <path>] [-Checkpoint <path>] [-NotesDir <path>]
+#       [-Transcript <session .jsonl> | -SessionId <id>] [-ProjectsDir <dir>] [-Out <file>]
 #
 #   -ProjectDir  the project folder (default: the current directory). Its leaf name is the slug.
 #   -Checkpoint  default <ProjectDir>/CHECKPOINT.md
 #   -NotesDir    optional folder of markdown task notes with YAML frontmatter (any notes app or
 #                tracker that writes .md files). Default: $env:DECISIONS_NOTES_DIR; unset = skipped.
+#   -Transcript  THIS session's transcript (.jsonl). Without it, <ProjectsDir>/*/<SessionId>.jsonl,
+#                where SessionId defaults to $env:CLAUDE_CODE_SESSION_ID and ProjectsDir to
+#                ~/.claude/projects. Never "the newest file": concurrent sessions share a folder.
+#                No transcript found = a warning and an empty offered[].
+#   -Out         also write the JSON to this file (UTF-8, no BOM); validate_board.py reads it as
+#                <board name>.collected.json beside the board file.
 #
 # Output shape:
-#   { project, generated_utc, candidates: [...], sources_scanned: {checkpoint, notes}, warnings: [...] }
+#   { project, generated_utc, candidates: [...], offered: [...], sources_scanned: {checkpoint, notes}, warnings: [...] }
+#
+# offered: choices this session already put to the user, so step 1b carries them onto the board
+# instead of re-judging them. One entry {at, kind, text} per main-thread assistant row that holds
+# an AskUserQuestion call (kind "question": each question plus its option labels) or text with two
+# or more option lines ("Option A", "(a)", "a)") (kind "text": the first 800 characters).
+# Sidechain (sub-agent) rows are skipped.
 #
 # Candidate kinds:
 #   thread -- top-level bullets under the CHECKPOINT's "## Open threads" section; owner is "owner"
@@ -25,7 +38,11 @@
 param(
     [string]$ProjectDir,
     [string]$Checkpoint,
-    [string]$NotesDir
+    [string]$NotesDir,
+    [string]$Transcript,
+    [string]$SessionId,
+    [string]$ProjectsDir,
+    [string]$Out
 )
 
 $ErrorActionPreference = 'Stop'
@@ -283,12 +300,62 @@ if (-not [string]::IsNullOrWhiteSpace($NotesDir)) {
     }
 }
 
+# --- (c) options this session already offered the user --------------------------
+
+$offered = New-Object System.Collections.Generic.List[object]
+if ([string]::IsNullOrWhiteSpace($Transcript)) {
+    if ([string]::IsNullOrWhiteSpace($SessionId)) { $SessionId = $env:CLAUDE_CODE_SESSION_ID }
+    if (-not [string]::IsNullOrWhiteSpace($SessionId)) {
+        if ([string]::IsNullOrWhiteSpace($ProjectsDir)) { $ProjectsDir = Join-Path (Join-Path $HOME '.claude') 'projects' }
+        $hit = @(Get-ChildItem -LiteralPath $ProjectsDir -Directory -ErrorAction SilentlyContinue |
+            ForEach-Object { Join-Path $_.FullName "$($SessionId.Trim()).jsonl" } |
+            Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1)
+        if ($hit.Count -gt 0) { $Transcript = $hit[0] }
+        else { $warnings.Add("no transcript named $SessionId.jsonl under $ProjectsDir -- offered empty") }
+    } else {
+        $warnings.Add("no -Transcript or session id -- offered empty")
+    }
+}
+if (-not [string]::IsNullOrWhiteSpace($Transcript)) {
+    if (Test-Path -LiteralPath $Transcript -PathType Leaf) {
+        $optLine = '(?im)^\s*(\*\*)?(option\s+[A-H1-8]\b|\(?[a-h]\)\s)'
+        foreach ($raw in [System.IO.File]::ReadAllLines($Transcript, (New-Object System.Text.UTF8Encoding($false)))) {
+            if ($raw.IndexOf('"assistant"') -lt 0) { continue }
+            try { $row = $raw | ConvertFrom-Json } catch { continue }
+            if ($row.type -ne 'assistant' -or $row.isSidechain) { continue }
+            # Read the timestamp from the raw line: pwsh 7's ConvertFrom-Json turns it into a
+            # local DateTime, which would no longer match the validator's 'at' comparison.
+            $tsm = [regex]::Match($raw, '"timestamp"\s*:\s*"([^"]+)"', [System.Text.RegularExpressions.RegexOptions]::RightToLeft)
+            $ts = if ($tsm.Success) { $tsm.Groups[1].Value } else { [string]$row.timestamp }
+            foreach ($c in @($row.message.content)) {
+                if ($c.type -eq 'tool_use' -and $c.name -eq 'AskUserQuestion') {
+                    $parts = @()
+                    foreach ($q in @($c.input.questions)) {
+                        $labels = @($q.options | ForEach-Object { $_.label }) -join ' / '
+                        $parts += "$($q.question) [$labels]"
+                    }
+                    $offered.Add([ordered]@{ at = $ts; kind = 'question'; text = ($parts -join ' | ') })
+                } elseif ($c.type -eq 'text' -and $c.text) {
+                    if ([regex]::Matches([string]$c.text, $optLine).Count -ge 2) {
+                        $t = [string]$c.text
+                        if ($t.Length -gt 800) { $t = $t.Substring(0, 800) }
+                        $offered.Add([ordered]@{ at = $ts; kind = 'text'; text = $t })
+                    }
+                }
+            }
+        }
+    } else {
+        $warnings.Add("transcript not found at $Transcript -- offered empty")
+    }
+}
+
 # --- assemble output -----------------------------------------------------------
 
-$out = [ordered]@{
+$result = [ordered]@{
     project         = $slug
     generated_utc   = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
     candidates      = @($candidates.ToArray())
+    offered         = @($offered.ToArray())
     sources_scanned = [ordered]@{
         checkpoint = $checkpointResolved
         notes      = $notesScanned
@@ -296,5 +363,9 @@ $out = [ordered]@{
     warnings = @($warnings.ToArray())
 }
 
-$json = $out | ConvertTo-Json -Depth 10
+$json = $result | ConvertTo-Json -Depth 10
+if (-not [string]::IsNullOrWhiteSpace($Out)) {
+    try { [System.IO.File]::WriteAllText($Out, $json, (New-Object System.Text.UTF8Encoding($false))) }
+    catch { [Console]::Error.WriteLine("WARNING: could not write -Out file ${Out}: $($_.Exception.Message)") }
+}
 Write-JsonAndExit -Json $json -Code 0

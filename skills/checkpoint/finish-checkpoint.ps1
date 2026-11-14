@@ -177,7 +177,13 @@ Write-Output "[finish-checkpoint] stamped: Last updated: $stamp$tag"
 # read") -- which is exactly what step 6(b) compression asks it to do. Say so here.
 Write-Output "[finish-checkpoint] NOTE: this script rewrote the file on disk. Re-Read it before your next Edit -- your read snapshot is stale and the Edit will otherwise be rejected."
 
-if ($over -and -not $NoAutoArchive) {
+# JSONL mode: a project is in it iff changelog.jsonl sits beside its CHECKPOINT.md. Its history
+# lives in that append-only file and the CHECKPOINT keeps only the newest entry, so there is
+# nothing to auto-archive -- moving entries into archive/harness_changelog.md would fork history.
+$jsonlMode = Test-Path -LiteralPath (Join-Path (Split-Path -Parent $Checkpoint) 'changelog.jsonl')
+if ($over -and -not $NoAutoArchive -and $jsonlMode) {
+  Write-Output "[finish-checkpoint] over cap in JSONL mode (changelog.jsonl beside the CHECKPOINT) -- changelog auto-archive skipped; the inline section holds one entry, so compress live sections instead"
+} elseif ($over -and -not $NoAutoArchive) {
   # --- Auto-archive: keep newest $KeepNewest changelog entries, move the rest ---
   $L = $m.Lines
   $clStart = -1
@@ -249,9 +255,13 @@ if ($bloat.Count -gt 0) {
 }
 
 # Open-threads per-bullet warning (advisory only -- no stated cap in the harness rules).
-$otLong = @(Get-Section $m.Lines 'Open threads' | Where-Object { $_ -match '^- ' -and $_.Length -gt 700 })
+# Only bullets that link a home doc are warned: a backticked or [markdown](link) relative .md path or
+# folder (not a URL, home or drive path, CLAUDE.md or CHECKPOINT.md). Such a thread is one short line
+# plus its link, so detail belongs in the linked doc; a bullet with no supporting doc IS the record
+# and may run as long as a cold session needs.
+$otLong = @(Get-Section $m.Lines 'Open threads' | Where-Object { $_ -match '^- ' -and $_.Length -gt 350 -and $_ -match '`(?![A-Za-z]+://|~|[A-Za-z]:)(?:[^`\s]*/)?(?!(?:CLAUDE|CHECKPOINT)\.md`)[^`\s/]+\.md`|`(?![A-Za-z]+://|~|[A-Za-z]:)[^`\s]+/`|\]\((?![A-Za-z]+://|~|[A-Za-z]:)[^)\s]+\.md\)' })
 if ($otLong.Count -gt 0) {
-  Write-Output "[finish-checkpoint] WARN: $($otLong.Count) Open-threads bullet(s) exceed 700 chars -- a thread is a to-do line + pointer, not the diagnosis itself."
+  Write-Output "[finish-checkpoint] WARN: $($otLong.Count) Open-threads bullet(s) exceed 350 chars -- a thread that links its spec or doc is what it is plus that link; move the detail there."
 }
 
 if ($over) {

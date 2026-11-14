@@ -9,17 +9,20 @@ description: Corrects a repeated or documented mistake and strengthens the faili
 2. **Find the existing knowledge.** Search relevant instructions, current state, decisions, archives, and targeted transcript excerpts. Cite the source. If it was never recorded, say so rather than inventing prior documentation.
 3. **Diagnose the missed path.** Establish whether the rule was absent, misplaced, buried, in the wrong layer, skipped by this entry point, or read but unenforced. Separate proven causes from hypotheses.
 4. **Change the narrowest reliable layer:**
-   - Mechanical patterns: a tested hook, validator, or deny rule.
-   - Local workflow constraints: a short colocated instruction.
+   - Mechanical patterns: a tested hook, validator, or deny rule. Before writing a guard, name where the forbidden text physically appears and hook that event: the user's prompt -> UserPromptSubmit; the call the model is about to make -> PreToolUse; a fetched page or other tool output -> PostToolUse on the reading tools; the model's finished reply -> Stop. A guard on any other event can never see it.
+   - Local workflow constraints: a short colocated instruction in the directory where the work happens, stated in its first lines.
    - Stable project behavior: project instructions.
    - Mutable state or pending implementation: the project's state or tracker.
    - Cross-project behavior: the shared instructions, only when every affected workflow needs it.
-5. **Verify reach and behavior.** Check that the failing workflow actually loads or fires the change. For enforcement, test a violating case and a legitimate exception. Record any untested limitation.
-6. **Report briefly:** correction applied; source and diagnosed gap; durable change and verification.
+
+   When two homes are plausible, pick the one closest to where the bad action physically happens and name the alternative in one line.
+5. **Write the rule tightly.** A rule written from the user's correction quotes the user's exact words beside it and drops every clause that restricts more than they did. When the rule already exists, rewrite that whole rule as short bullets (trigger, directive, exceptions, one provenance note); never bolt a clause onto its end. One idea per sentence; one tight line in the right place beats a paragraph in three places.
+6. **Verify reach and behavior.** Check that the failing workflow actually loads or fires the change. For enforcement, test a violating case and a legitimate exception. Record any untested limitation.
+7. **Report briefly:** correction applied; source and diagnosed gap; durable change and verification. No promises about future behavior; the changed file is the promise.
 
 Preserve detailed records in their existing owner documents; add a short pointer rather than duplicating history. Follow the project's versioning, changelog, and size conventions. Use its designated durable store, not a new parallel memory system.
 
-Do not create an unnecessary edit merely to claim prevention. If the existing rule is correct, address enforcement or the read path. For recurrence across entry points, strengthen the general failure family rather than adding a separate rule for each incident.
+Do not create an unnecessary edit merely to claim prevention. If the existing rule is correct, address enforcement or the read path. For recurrence across entry points, strengthen the general failure family rather than adding a separate rule for each incident, and move it up a layer (prose -> colocated instruction -> hook or deny rule).
 
 ## Restricted runtimes
 

@@ -54,7 +54,9 @@ waits 120 seconds for the worker to connect, measured from when the request was 
 (the same deadline the worker uses to expire it), then gives up. While it waits it
 re-launches the task after gaps of 10, 20 and 40 seconds, so a slow start stacks a few
 workers rather than one per second; on a fully loaded machine a 30-second window with
-one-second relaunches stacked 18 workers and none connected in time. The sandbox probe
+one-second relaunches stacked 18 workers and none connected in time. The installer
+registers the task at normal priority (4); Task Scheduler's default (7, below normal)
+starved the worker on that loaded machine. The sandbox probe
 may run for 120 seconds; it was measured at 28-49 seconds with the screen locked.
 
 Interactive Codex (no arguments) is not relayed; it needs a native Windows console.

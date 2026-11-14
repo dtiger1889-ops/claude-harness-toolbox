@@ -39,7 +39,7 @@ prune it (no "Closed this session" graveyard). Litmus: still contestable AND rec
 flips the shape rather than defending it:
   Action — one literal next action (only when a single workstream is live right now), OR
   HOLD — <what the human must decide/do>; don't <gated action> until then, OR
-  Pick — Pick from Open threads (live ask outranks; then ready + [high] first).
+  Pick — Pick from Open threads (live ask outranks; then agent-side [low] to a delegated worker, [high] inline; owner-gated items are the owner's).
 Pick is the default for non-linear projects. This section, not Status, owns "what's next."]
 
 <!--

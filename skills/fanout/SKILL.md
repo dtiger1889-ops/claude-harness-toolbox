@@ -40,4 +40,4 @@ Give one critic the problem, constraints, and all frame outputs. Ask it to:
 
 Present the critic's spread first (the five one-line ideas with their percentages, lowest last), so an idea only one frame reached is not buried under the converged ones; then the strongest directions, distinct traps, and recommendation. Explain meaningful convergence; do not dump every raw output.
 
-Keep raw frame output ephemeral unless the user requests it. Consider durable conclusions through log: save reusable findings in their existing owner document, or report "nothing to log". Run once per invocation; a second fanout needs a new request.
+Keep raw frame output ephemeral unless the user requests it. The critic's strongest directions and recommendation are a log candidate by default: run log without waiting to be told, so reusable findings land in their existing owner document, or log reports "nothing to log". Run once per invocation; a second fanout needs a new request.

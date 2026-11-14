@@ -14,7 +14,8 @@
 # -ForeignSession  The lapse happened in a different session than the one filing it. Skips
 #                  the transcript read and trusts -Model/-Effort. Requires -Model.
 # -RepeatOf <n>    Earlier row(s) this lapse repeats (12, or 12,46). Stamps `repeat_of` on the
-#                  record and prints a PROMOTE message after appending.
+#                  record and prints a PROMOTE message after appending. The message names
+#                  the nearest CHECKPOINT.md at or above the ledger's folder.
 # -NotRepeat       The caller checked and this is new; skips the similarity check.
 # Similarity check (runs only when neither flag is passed): word-set overlap (Jaccard) between
 #   this record's rule/step text and every earlier row's. At or above -Threshold (default 0.15)
@@ -219,6 +220,16 @@ if ($RepeatOf) {
     $totalCount = $allNs.Count
     $nList = ($allNs | ForEach-Object { $_.ToString() }) -join ','
     $mdTwin = $LogFile -replace '\.jsonl$', '.md'
-    $ckpt = Join-Path (Split-Path -Parent (Split-Path -Parent (Resolve-Path $LogFile).Path)) 'CHECKPOINT.md'
-    Write-Output "PROMOTE: this rule now has $totalCount rows (n=$nList). A repeat earns a stronger GENERAL rule for its family (one hook or rule per family of failure), never a new rule shaped to this one incident. In THIS run: (1) add or update the family's Fix candidates entry in $mdTwin, listing every n in it; (2) write ONE Open-threads line in the CHECKPOINT.md of the project that holds this ledger (likely $ckpt): '- Strengthen <rule family, 8 words max>: <one-line design>.' The line closes when that fix ships and the rows' fix_status says so."
+    # The project state file: the nearest CHECKPOINT.md at or above the ledger's own folder.
+    $ckpt = $null
+    $dir = Split-Path -Parent (Resolve-Path $LogFile).Path
+    while ($dir) {
+        $cand = Join-Path $dir 'CHECKPOINT.md'
+        if (Test-Path $cand) { $ckpt = $cand; break }
+        $up = Split-Path -Parent $dir
+        if (-not $up -or $up -eq $dir) { break }
+        $dir = $up
+    }
+    $where = if ($ckpt) { $ckpt } else { "the project state file of the project that holds this ledger (no CHECKPOINT.md found above it)" }
+    Write-Output "PROMOTE: this rule now has $totalCount rows (n=$nList). A repeat earns a stronger GENERAL rule for its family (one hook or rule per family of failure), never a new rule shaped to this one incident. In THIS run: (1) add or update the family's Fix candidates entry in $mdTwin, listing every n in it; (2) write or widen ONE open-item line in $where (widen the family's existing line if there is one): '- Strengthen <rule family, 8 words max>: <one-line design>.' Do not read that file whole: search it for the open-items heading and the family's line, read only those lines, and edit the one line. The line closes when that fix ships and the rows' fix_status says so."
 }

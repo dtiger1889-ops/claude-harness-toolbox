@@ -180,6 +180,22 @@ companion [Agent Ladder](https://github.com/dtiger1889-ops/agent-ladder) reposit
 (`hooks/`, `tests/`, `HISTORY.md`); the private build record, with the transcript counts above
 and their scan scripts, stays in the owner's workspace.
 
+## 2026-11-14: from "one open thread" to "one live ask"
+
+The starter rulebook said "one open thread at a time: finish or hit a real blocker before
+starting another." In the maintainer's workspace a session holding two live requests hit a
+blocker on the first (a step that needed the owner's hands) and ended the whole turn
+there, leaving the second request untouched until the owner asked again. The wording
+pointed the wrong way at decision time: "hit a real blocker, then stop" read as stopping
+the turn, and the rule for tabling owner-gated steps covered only the gated step itself.
+
+The rule now reads "one live ask at a time": serve the whole current request, don't drift
+into an unrelated open thread, and let a blocker stop only the directive it blocks, with
+that item tabled in one line while the rest of the request continues in the same turn.
+The anti-sprawl intent of the original rule is kept. The same re-sync brought the
+embedded rulebook in `harness_me.txt` up to the maintainer's current general rules,
+grouped by what they govern.
+
 ## Sources retained from the survey
 
 - [Anthropic: Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)

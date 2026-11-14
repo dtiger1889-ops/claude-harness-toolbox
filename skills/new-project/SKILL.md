@@ -20,7 +20,8 @@ skeletons are this repo's `templates/`, copied wherever you keep them.
 ## Step 0 -- the three questions (ask only what the conversation hasn't answered)
 
 1. **Name** -- short kebab/snake slug; folder name = project name. Name it for what it
-   DOES, not for the model that built it, so the name survives a change of agent.
+   DOES, never branded for the model that built it (`claude-*` and the like), so the name
+   survives a change of agent. Sole exception: a repo whose subject IS that agent's tooling.
 2. **Location** -- top-level project, or an occupant of a container folder (one for
    experiments, one for small apps)? Default: experiments and one-offs start in the
    experiments container and get promoted later; anything with a standing goal goes
@@ -44,7 +45,8 @@ templates/gitignore.template      -> <proj>/.gitignore   (new repo only)
 Fill every `[bracketed placeholder]`. CLAUDE.md stays <= 30 lines with a line-2
 version stamp (`<!-- v1 -- YYYY-MM-DD -->`). CHECKPOINT.md gets `Last updated:` from
 the real clock in UTC (run a command, never guess) and the sections Status / Goal /
-Key decisions / Open threads / Files that matter / Next step / Harness changelog.
+Key decisions / Open threads / Files that matter / Next step (one of the template's three
+declared shapes: Action, HOLD or Pick) / Harness changelog.
 A private repo's `.gitignore` covers only secrets, personal data and machine junk,
 never a working file (CHECKPOINT, CLAUDE.md, specs, docs), because a resumed session
 needs them.
@@ -53,12 +55,15 @@ needs them.
 
 - Inspect the folder first for nested `.git` directories, secrets or personal data,
   generated output, databases, archives and large files; write `.gitignore` first.
-  Stop if a repo already exists there and diagnose it instead of initializing over it.
+  Stop if a repo already exists there, or the separate git-dir path below already exists,
+  and diagnose it instead of initializing over it.
 - `git init -b main`. If the folder sits inside a sync service, keep the git metadata
   outside it (`--separate-git-dir <path outside the synced tree>`), because a sync
   client rewriting a live `.git` folder corrupts it.
 - Stage only after every placeholder is filled; inspect the staged tree and its largest
-  files before committing. Create the remote **private**, add `origin`, push `main`.
+  files before committing. Create the remote empty and **private** (no `--source`, so
+  the host never pushes an unreviewed tree), add `origin`, push `main`, and turn on
+  delete-branch-on-merge (`gh repo edit --delete-branch-on-merge` on GitHub).
 - Check every command's result; never suppress a failure and print success after it.
 
 ## Step 2 -- register (do ALL that apply)
@@ -77,7 +82,9 @@ needs them.
 The project's first working turn writes a `## Research` block in its CHECKPOINT
 (prior art, constraints, open questions, sources) before any implementation. Shipped
 solutions first: GitHub, published skills, community writeups; default to
-adopt/adapt with a citation. Building from scratch needs a stated reason.
+adopt/adapt with a citation. Building from scratch needs a stated reason. If the build
+touches agent tooling, also check your vet ledger (see the `vet` skill) and add notable
+finds that pass its admission test, judged per find.
 
 ## Step 4 -- verify before closing
 

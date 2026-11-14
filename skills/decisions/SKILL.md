@@ -25,6 +25,7 @@ in the project's `.decisions/` folder: `board.json` (the last board), `board.htm
 Copy this checklist into your reply and tick each line:
 - [ ] 0 picks from the last board read and recorded
 - [ ] 1 candidates collected
+- [ ] 1b choices this session already offered carried
 - [ ] 2 verdict table printed
 - [ ] 3 decisions written
 - [ ] 4 board validated, then shown (page or chat)
@@ -63,10 +64,16 @@ collection on that URL. Each pick is `{decision, option, note, at, rev, unpicked
 ## 1 -- collect candidates (mechanical)
 
 ```
-pwsh -NoProfile -File <this skill's folder>/collect_decisions.ps1 -ProjectDir <project folder>
+pwsh -NoProfile -File <this skill's folder>/collect_decisions.ps1 -ProjectDir <project folder> -Out <project>/.decisions/board.collected.json
 ```
 
 On Windows without PowerShell 7, run the same line with `powershell` in place of `pwsh`.
+
+The collector also reads THIS session's transcript, found by its session id
+(`$env:CLAUDE_CODE_SESSION_ID`, or `-SessionId <id>`, or a literal `-Transcript <path>`), never
+the newest file, since concurrent sessions share a folder. It fills `offered[]` for step 1b; `-Out`
+saves the output where step 4's validator checks the board against it. A runtime with no
+transcript on disk gets a warning and an empty `offered[]`; say so.
 
 Add `-NotesDir <folder>` (or set `DECISIONS_NOTES_DIR`) to include markdown task notes whose
 frontmatter carries `project: <folder name>`; it is optional, and without it the CHECKPOINT is the
@@ -77,7 +84,19 @@ classifies. If it warns the CHECKPOINT is missing, say so and continue with what
 
 A candidate already decided is not a candidate: one whose bullet carries an `owner decision`
 line, a note with `answered: true`, or one a step-0 pick just settled goes in `left` with verdict
-`already decided: <their answer, in their words> (<date>)`.
+`already decided: <their answer, in their words> (<date>)`. Read only this project's board and
+notes for these answers; never another project's board.
+
+## 1b -- choices this session already put to the user (before classifying)
+
+A choice the session itself just put to the user is theirs by the session's own word; re-judging
+it off the board makes the earlier reply a lie. Read the collector's `offered[]` (and this
+conversation's own replies, where no transcript is on disk) for options or questions given to them
+on any candidate's topic, or on a topic with no candidate yet. Each one goes on the board as they
+were told it: same options, any doubt written into `background`. The verdict table never marks it
+"not", and the board data lists it in `offered[]` as `{topic, decision: <the decision id that
+carries it>, at: <the collector entry's at>}`; the validator fails an offered topic missing from
+`decisions` and any collected offer whose `at` no `offered[]` entry carries.
 
 ## 2 -- classify every candidate (the load-bearing step)
 
@@ -101,7 +120,9 @@ make. A candidate must pass all three, or it is not a decision: answer it or dro
 - a. It answers the device, scope or thing the user named, not a neighbour or substitute of it.
 - b. It raises no purchase or spend (new hardware, a subscription, an account) they never raised.
 - c. It is not already settled by a dated decision of theirs in the CHECKPOINT, a note's
-  `reply`, or a board pick.
+  `reply`, or a pick on this project's board, nor by a fact about them the workspace already
+  records (household, home, what they own, in whatever profile or notes file they keep), which is
+  read before any candidate about their life is kept.
 
 Discard, naming the reason, anything that is:
 - the project's normal improve-loop ("fold in what makes it better"): that is the job, not a choice;
@@ -132,6 +153,12 @@ a decision to fill the page.
 For each decision, in plain words a stranger could act on:
 - `id`: a short unique slug, stable across rebuilds (the page saves picks under it).
 - `title`: the fork as a question, under 100 chars, no field names or project shorthand.
+- `what`, `ask`, `read` (required; the page shows them above the background, before any option):
+  what the item is in one line; the ask in the user's words or the source's own words, quoted,
+  never a restatement; what this run read to judge it (files, notes, pages). A reader who never saw
+  the source must know what is being decided before reading a verdict.
+- No link or path in any body text (title, what/ask/read, background, options, reasons): a long
+  unbroken run cannot wrap on a phone and the card cuts it off. Links and paths go in `sources`.
 - `background`: **a LIST of 2-4 paragraph strings** (the template calls `.map` on it, so a single
   string renders a blank page): what the thing is, where it came from, what was found, what the
   options are about. A title plus options without this is not a decision.
@@ -140,6 +167,9 @@ For each decision, in plain words a stranger could act on:
   decision came from, and the CHECKPOINT line or task note that listed it.
 - 2-8 `options`, each with `key` (a short unique slug: the page saves it as the pick and matches
   `default` against it), `label`, `choose_if`, `cost`, `unblocks` (concrete, no workflow jargon).
+  A `label` names only what that option changes; anything already settled is stated once in
+  `background`, never repeated inside an option, because a bundled label hides which part is the
+  choice.
 - `default` + `default_reason`: a suggested pick only with a one-sentence reason saying why that
   option beats the others, naming one piece of evidence (file:line, command output, URL, or a
   dated quote of the user), or saying "no evidence beyond judgment". `default` is a `key`, never a
@@ -147,18 +177,22 @@ For each decision, in plain words a stranger could act on:
   `default: null` and say so in `default_reason`. Never suggest by habit or because it is the
   status quo. **`null` is never the answer when the user's recorded intent or the research points
   at an option**: recommend it and name that intent or evidence.
-- Collect the discards as `left[]` (`title`, `verdict`) so the board shows what was left off and
-  why (outreach items excepted, per step 2).
+- Collect the discards as `left[]` (`title`, `verdict`, plus the same `what`, `ask`, `read`) so
+  the board shows what was left off, what each one is, and why (outreach items excepted, per
+  step 2).
 
 ## 4 -- validate, then show the board
 
-Write `<project>/.decisions/board.json` as `{project, generated, decisions, left}` (`generated` =
+Write `<project>/.decisions/board.json` as `{project, generated, decisions, left, offered}` (`generated` =
 `YYYY-MM-DD HH:MM UTC`; `project` = the folder name). Then:
 
 ```
 python <this skill's folder>/validate_board.py <project>/.decisions/board.json
 python <this skill's folder>/render_board.py <project>/.decisions/board.json
 ```
+
+The validator also reads `board.collected.json` beside the board file (step 1's `-Out`), or a
+path given as `--collected <file>`.
 
 Show the board only on the validator's `ok`: the template has no error handling, so one
 wrong-shaped field gives a blank page. The validator also fails a `why_now` or `default_reason`
@@ -175,8 +209,13 @@ Pick the route by what this session has:
   `board/current` document, since the new file may no longer carry it), move its decision to
   `left` as already decided, and re-validate and
   re-render (a board built before the pick would show the answered question as open). Then
-  `ArtifactData set`, collection `board`, doc `current`, from the validated `board.json`. The
-  open page updates live.
+  read the validated `board.json` and `ArtifactData set`, collection `board`, doc `current`,
+  with its parsed contents passed inline as `data:`. Never pass `file_path:` to `ArtifactData`:
+  a write that reads a local file asks for approval on every call, and a user away from the
+  machine never sees the prompt, so the run hangs. The open page updates live.
+- Republish only when the hosted page is missing a feature the data needs: `Artifact read` its
+  URL and look for `board/current` (the database reader) and `ctxHtml` (the what / ask / read
+  renderer) in the source. Each republish costs one consent prompt; warn in chat first.
 - First board for the project: publish `.decisions/board.publish.html` (it carries no data, since
   the data holds local paths a hosted page should not; it fills from `board/current`) with
   `capabilities: {db: {}}`, `icon: "scale"`, a one-sentence description; save the returned URL to
@@ -203,4 +242,5 @@ state files.
 - One project at a time: the folder the session is in. Ask which project only if that folder has
   no CHECKPOINT.md and the user named none.
 - Same page per project, fresh data each run: never a second hosted board for the same project.
-- Tests: `python validate_board_tests.py` beside this file.
+- Tests: `python validate_board_tests.py` and `pwsh -NoProfile -File collect_decisions_tests.ps1`
+  beside this file.

@@ -60,7 +60,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Could not protect bridge state folder' }
 # No trigger: the task runs only when codex_native.py asks for it.
 $action = New-ScheduledTaskAction -Execute $pythonw -Argument ('"' + $bridge + '" --bridge-worker') -WorkingDirectory $PSScriptRoot
 $principal = New-ScheduledTaskPrincipal -UserId $identity -LogonType Interactive -RunLevel Limited
-$settings = New-ScheduledTaskSettingsSet -MultipleInstances Parallel -ExecutionTimeLimit (New-TimeSpan -Hours 5) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+# Priority 4 = normal. The Task Scheduler default (7, below normal) starves the worker on a
+# fully loaded machine, so it misses its start window and every relayed call fails.
+$settings = New-ScheduledTaskSettingsSet -MultipleInstances Parallel -ExecutionTimeLimit (New-TimeSpan -Hours 5) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -Priority 4
 Register-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Action $action -Principal $principal -Settings $settings -Force | Select-Object TaskPath,TaskName,State
 
 # Keep the first copy of any launcher this replaces, so it can be restored later.

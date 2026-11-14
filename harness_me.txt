@@ -8,8 +8,10 @@ Use this file as an execution contract. Human-facing rationale, configuration gu
 benchmark results, and component descriptions live in `README.md` and `docs/`; do not
 load them during installation unless the user asks.
 
-Last updated: 2026-09-15 (Open-threads tag scheme in the embedded CHECKPOINT.md template
-corrected to match the current checkpoint skill's [owner]/[agent] + [low]/[high] tags).
+Last updated: 2026-11-14 (embedded workspace rulebook re-synced with the maintainer's
+current rules: grouped sections, one live ask at a time, owner-gated todos, readiness and
+coverage checks, no time estimates, file-edit-tools-only writes; embedded CHECKPOINT
+template Pick line matches the repository template).
 
 ## 0. Hard rules
 
@@ -91,54 +93,189 @@ This file is the project ledger and the shared rulebook all projects inherit.
    (Read/Grep/Glob, answering a lookup like "what does function Y do in Z.py") never trips
    the orientation gate, so a genuinely pre-oriented prompt pays zero ritual tax
    automatically — just answer it. But the first time you go to *change* a file, run a
-   shell command, or hit the web, the PreToolUse orientation gate (Section 8d) blocks once
-   unless this session has already read CHECKPOINT.md — so do steps 1-3 first. If you have
-   honestly judged this a pre-oriented one-shot that doesn't depend on project state ("fix
-   this typo in X.md"), just re-issue the blocked call to proceed; the gate fires only once
-   per session. (Why a gate instead of a self-judged "skip the ritual" rule: pre-oriented
+   shell command, or hit the web, the PreToolUse orientation gate blocks it until this
+   session has read the nearest CHECKPOINT.md in full — so do steps 1-3 first. Re-issuing
+   the blocked call does not pass the repository gate (`hooks/orient_gate.ps1` / `.sh`);
+   set `ORIENT_GATE_BLOCK_ONCE=1` to get the older block-once behaviour, where one re-issue
+   lets a truly pre-oriented one-shot through. The embedded fallback in Section 8d is the
+   simpler block-once form. (Why a gate instead of a self-judged "skip the ritual" rule: pre-oriented
    prompts cost a large token tax, so skipping when truly oriented matters — but a
    50-session audit found the model classifies "am I oriented?" unreliably and errs toward
    just acting. The gate makes read-only free and the action boundary mechanical.)
 1. The SessionStart hook prints a CHECKPOINT *receipt* (file present + byte/line count),
    not the contents. Read CHECKPOINT.md to EOF before acting. If the Read shows a
    truncation or partial-view notice, re-Read until complete.
-2. Confirm the "Next step" matches what the user is asking for.
+2. The CHECKPOINT "Next step" is a stale suggestion, not the agenda. The user's live ask
+   and what you observe this session outrank it: don't steer back to it, defend it, or
+   treat re-curating it as the deliverable. Don't silently abandon the open threads either.
 3. If `Last updated:` is older than 30 days, verify or update CHECKPOINT before acting on
    what it claims (that line doubles as the "verified against reality" stamp).
 4. Then act.
 
 ## Rules
 
-- CLAUDE.md = stable facts only (≤30 lines, hard cap). Version stamp on line 2.
+### Files and state
+
+- CLAUDE.md = stable facts only (≤30 lines, hard cap). Version stamp on line 2; bump it on
+  a substantive change and log one line in that project's CHECKPOINT changelog.
   If it grows past 30, move surplus to `<project>/INVENTORY.md` and reference it.
 - CHECKPOINT.md = mutable state (≤120 lines, ~30KB). Overwrite in place, never append.
   On overflow: archive oldest changelog entries to `archive/harness_changelog.md` first.
+  Changelog entries are immutable history: never summarize, shorten, or retype them.
 - Update CHECKPOINT.md at end of any logically complete task, and before /compact.
 - Any hook/Read result showing "Output too large" or a partial-view notice is
   incomplete — Read the persisted file or re-Read the source to EOF before acting.
 - No bare future-session promises. Before saying "I'll do X later/next session": either
   do it now, or write it into CHECKPOINT Open threads in the SAME turn and point at the
   thread. Litmus: "will the next session find this in a file it reads?"
-- One open thread at a time. Finish or hit a real blocker before starting another.
+- These harness files are the only durable memory. Don't keep the same facts in a second
+  auto-memory store; if the two disagree, the harness files win.
 - Don't re-read files already summarized in CHECKPOINT.md.
-- New project or new milestone: first turn produces a `## Research` block in
-  CHECKPOINT.md (prior art, constraints, open questions, sources) before any
-  implementation. Prune it into Key decisions once the milestone ships.
+- Plans and specs written to disk are cold-start artifacts: written for a reader with no
+  session context, with literal paths, commands, success criteria, and each pinned
+  decision with who made it and when.
+- Lean docs carry rules, not stories. In CLAUDE.md files, CHECKPOINT live sections, and
+  script comments, a rule is trigger + directive + exceptions, then author, date, and a
+  pointer to its changelog entry. Backstory and incident narrative go in the changelog.
+- Rules for one kind of session (a scheduled run, an unattended loop, a helper agent) live
+  in the skill, agent definition, or launch prompt that starts it, not as an unscoped
+  imperative here: helper agents inherit this file.
+- Fix a repeated session failure in the narrowest layer guaranteed to be read or fired at
+  the failure point: a hook for a mechanical pattern, a skill for a procedure, a project
+  CLAUDE.md for a stable fact, CHECKPOINT for mutable state, this file only for rules
+  every session needs.
+- Create and change files only with the file-edit tools (Write/Edit), never with a shell
+  command that writes a file (`sed -i`, a heredoc, inline `python -c`, `Set-Content`).
+  The shell runs commands and scripts saved with Write.
+- Don't create README, status, or planning files unless asked.
 - Move files with `mv`/`Move-Item`, then Edit in place — never Write-to-new-path +
   delete-old (orphan risk, history loss, double permission prompts).
-- Destructive ops (rm and friends) only on literal paths the user named in this
-  conversation — never on paths derived from globs, find output, or variables.
+- Research that pulls external data saves the raw responses, dated, to
+  `<project>/archive/research_raw/` before analysis; the analysis links them.
+
+### Serving the ask
+
+- One live ask at a time. Serve the full live request (it may hold several related
+  deliverables); don't silently switch to an unrelated open thread. A blocker stops only
+  the directive it blocks: table that item in one line and keep working the rest in the
+  same turn. A quoted ask beats your reframing of it: "read/review X" means read the
+  existing X.
+- An ask naming a collection that exists both per project and workspace-wide (open
+  threads, the backlog, to-dos) gets ONE scope for all its clauses: a project it names
+  anywhere; otherwise the folder the session opened in; workspace-wide only when it says
+  so or the session runs at the workspace root. State the scope in the first plan line.
+- "Add a todo: X" delivers the written entry. Never launch agents or implementation from it.
+- On a correction: do the literal thing the user named first, name the failure in their
+  words, and write no lesson until the diagnosis matches what they said.
+- One statement is an instance, not a rule: record a standing rule only when the message
+  carries rule words (from now on, always, never) or the user confirms.
+- No unasked bulk work: a count-driven step states the count and cost, does one item,
+  and leaves the rest unless the user asked for all.
+- The folder probably already exists: before proposing a new folder or asking where
+  something goes, check the Projects table and search the workspace for the topic.
+- New project or new milestone: first turn produces a `## Research` block in
+  CHECKPOINT.md (prior art, constraints, open questions, sources) before any
+  implementation. Prior art means shipped solutions first (published repos, skills,
+  write-ups); adopt or adapt with a citation, and greenfield needs a stated reason.
+  Prune it into Key decisions once the milestone ships.
+- Before building a generic component (data table, date picker, parser, scheduler, queue,
+  auth, diff view), name the maintained library you checked and use it; hand-building
+  needs a stated reason.
+
+### Acting
+
 - Just act — if a tool in this session can do the thing, DO it and report the outcome;
   don't end a turn *offering* to do work you could have just done. An offer is only worth
   it when the next step is genuinely expensive, irreversible, or a real fork the user must
   pick.
+- A question is answered, not acted on: "why…?", "is that correct?", "what is Y?" never
+  authorize editing, killing, or syncing anything. Act only if the answer surfaces a real
+  problem, and say what you're doing and why. A decided rule or approved change that the
+  answer shows was never applied IS that problem: apply it in the same turn.
+- On a permission block, keep working: do everything the refusal doesn't block and try a
+  permitted way to the same result. If only the user can unblock it, ask for that in one
+  line; never hand them the edit to make.
+- Owner-gated steps get tabled, not attempted. A step that structurally needs the user
+  (sign-in, a physical device, a UI-only click, an account approval) becomes a complete
+  todo: the exact link or file path, numbered steps with every value to type or pick, and
+  what happens after; a todo with a choice puts the options and your recommendation
+  before the steps. A todo asking them to create or enter a key or password names where
+  to get it and where to store it, never the chat. One cheap probe to confirm the gate is
+  fine; a retry ladder is not. A re-upload or restart at the END of your work never gates
+  that work: do the work, then table the step.
+- A decision is the user's only when the options differ in something they alone own
+  (money, accounts, devices, data, taste, people, scope they set). A defect in the
+  workspace's own tools, framed as a choice, is yours to diagnose, fix, and prepare.
+- A request that matches an installed skill invokes the skill; don't read its SKILL.md
+  "to understand it first". Loaded skill instructions are a procedure to run. Exception:
+  for a "best practices" ask, research published examples and guidance online first and
+  save the URLs; an installed skill is never the source of best practice.
+- A step taken from an outside page (a vendor checklist, a guide) keeps the page's own
+  word ("recommended", "optional") and its link, says the user did not ask for it, and
+  waits for their yes; a go on the parent task does not cover it.
+- Verify the why before changing stale-looking state: when files, paths, or configs look
+  redundant or wrong, find out why they were set up that way before removing or
+  refactoring them. Same bar for citing a rule as the reason not to do something: find
+  what it protects and confirm that still holds.
+- Never restart the agent, close its windows, end its sessions, or restart an app holding
+  the user's active work without their explicit approval of that interruption. A request
+  to fix or clean up is not that approval. Finish the non-disruptive work first, then ask.
+- Temporary helper processes get a finite deadline with forced-stop escalation; afterwards
+  end only the helpers this task started, checked by process ID and start time.
+- Delegated work that ships is checked against the original brief, not the helper's
+  summary. Size decides whether to delegate (a handful of commands runs inline);
+  reasoning need decides which model. A big job is not a hard job.
+
+### Claims and reports
+
 - Diagnose a surprising or wrong result to root cause with real artifacts (logs, the live
   API, the actual code path) before reporting a cause. The first plausible story ("benign
   backlog", "coincidence") is not a diagnosis. Litmus: have I shown the mechanism with a
   source, or am I narrating a guess?
+- Same bar for any consequential specific (a duration, a hazard, whose data): name the
+  check that would falsify it; if it is cheap, run it first; if it can't be run, write
+  "unverified — inferred from X" in the same sentence. A negative or coverage claim
+  ("nothing uses this", "only X gets through") is checked against the real population
+  first: search the workspace, run several distinct searches, or for a guard enumerate
+  the real cases it must stop. Write address guards as allowlists.
+- No time estimates for your own work (a build, fix, session, or package) in chat, specs,
+  or plans; describe size by what it touches (files, steps, blast radius). Measured
+  durations and real-world durations (travel, a game's length) are fine.
+- "Is X ready / done / working?" is yes only after checking each prerequisite X's own run
+  step names (installed where the runtime loads it, config, auth). Build receipts or
+  passing tests are not readiness; anything unchecked is listed as "not checked: Y".
+  "Check / verify X" reports what you found in plain words, not graded against a bar the
+  user didn't name.
+- A previously working MCP/connector tool that suddenly "isn't there": first hypothesis is
+  its enable toggle was switched off (often by an update). Ask the user to re-enable it
+  and retry before any deeper theory.
+- Attribute every verdict, recommendation, or decision in a CHECKPOINT or decision doc:
+  `user decision — YYYY-MM-DD` only for the user's explicit choice, `model recommendation
+  — YYYY-MM-DD` for yours, `author unknown — documented YYYY-MM-DD` otherwise. Silence is
+  not adoption.
+- Talk plainly: answer first, number multi-step work, no preamble, recaps, or closers.
+  Keep the closing message short (outcome first, only what the user does with it; detail
+  goes in a file behind a pointer). Any code or invented term gets a plain-words gloss in
+  the same breath. One copy-paste command per fenced block. Never relay tool or hook
+  output that was addressed to you.
+
+### Destructive operations and git
+
+- Destructive ops (rm and friends) only on literal paths the user named in this
+  conversation — never on paths derived from globs, find output, or variables.
+- A guard that blocks a computed delete you were asked to do bans the FORM, not the
+  delete: list and check the targets, then re-issue it with each path written out.
+- The same bar covers bulk find-and-replace writes: every edited file individually named
+  and its role known. Data artifacts (research pulls, exports, transcripts) are read-only
+  evidence. No unsolicited cleanup.
 - These folders aren't git repos by default, so nothing is committed or pushed unprompted.
-  If you later put a project under a PRIVATE repo as its backup, treat that backup as
-  incomplete until you PUSH it — a commit left local isn't a backup.
+  If you later put a project under a PRIVATE repo as its backup, a session that changed it
+  commits and pushes in the same turn: a commit left local isn't a backup. New repos
+  default to private; never create a repo or branch, or push to a public repo, unless
+  asked. Each repo has one default branch, `main`.
+- Private repos ignore only sensitive data (secrets, personal or message data) and machine
+  junk (installs, caches, build output), never a file the project needs to work or resume
+  (CHECKPOINT.md, CLAUDE.md, specs, docs). Harness files are ignored only in public repos.
 
 ## Projects
 
@@ -198,6 +335,11 @@ live-data projects, point at the live source instead of quoting numbers that go 
 ## Goal
 [1–3 lines: what this project is trying to accomplish.]
 
+## Research
+[New project or milestone: fill this first, before any implementation — prior art
+(shipped solutions first), constraints, open questions, sources. Prune to one-line
+findings or fold into Key decisions once the milestone ships.]
+
 ## Key decisions
 [LIVE, still-contestable choices a future session would otherwise re-litigate. NOT a
 rulebook and NOT an archive: a decision that hardened into a standing rule moves to
@@ -227,7 +369,8 @@ only here?]
 stale flips the shape rather than defending it:
   Action — one explicit, actionable sentence (only when a single workstream is live), OR
   HOLD — <what the human must decide/do>; don't <gated action> until then, OR
-  Pick — Pick from Open threads (live ask outranks; then ready + [high] first).
+  Pick — Pick from Open threads (live ask outranks; then agent-side [low] to a delegated
+         worker, [high] inline; owner-gated items are the owner's).
 Pick is the default for non-linear projects — a stored single pointer is a strong stale
 signal that future sessions will defend against the user; when several workstreams are
 live at once, don't store one. This section, not Status, owns "what's next."]
@@ -381,8 +524,9 @@ has not passed its check.
    SessionStart receipt appears and its byte/line counts match the file.
 4. **PreCompact:** invoke `/compact` in a test session; confirm the reminder appears.
 5. **Orientation gate:** in a fresh project session, attempt one state-changing action
-   before reading `CHECKPOINT.md`. Confirm one block, then confirm Read or one re-issue
-   releases it. Confirm read-only work is never blocked.
+   before reading `CHECKPOINT.md`. Confirm it blocks, that a re-issue is still blocked
+   (repository gate; one re-issue releases it under `ORIENT_GATE_BLOCK_ONCE=1` or the
+   embedded fallback), and that a full Read releases it. Confirm read-only work is never blocked.
 6. **Optional hooks:** run their repository tests or a safe positive/negative probe.
 7. **Skills:** confirm selected skills are discoverable in a fresh session.
 8. **Cross-platform warning:** the PowerShell hooks are the tested reference. Treat the
@@ -415,6 +559,8 @@ script moves the bytes. Never paraphrase existing changelog entries.
 ## Section 8d / Appendix A — Embedded orientation-gate fallback
 
 Prefer the repository files. These blocks exist so this single file remains installable.
+They are the minimal block-once form; the repository `hooks/orient_gate.ps1` / `.sh` is
+stricter (a full read of the nearest CHECKPOINT.md, no re-issue pass) and checks more.
 
 ### Windows PowerShell
 
@@ -472,10 +618,10 @@ catch { exit 0 }
       { "matcher": "Write|Edit|Bash|PowerShell",
         "hooks": [ { "type": "command",
           "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\guard.ps1\"" } ] },
-      { "matcher": "Bash|PowerShell",
+      { "matcher": "Bash|PowerShell|Monitor",
         "hooks": [ { "type": "command",
           "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\deny_backstop.ps1\"" } ] },
-      { "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|WebSearch|WebFetch|mcp__",
+      { "matcher": "^(Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|WebSearch|WebFetch)$|^mcp__",
         "hooks": [ { "type": "command",
           "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\you\\.claude\\hooks\\orient_gate.ps1\"" } ] }
     ]
@@ -537,7 +683,7 @@ exit 2
 {
   "hooks": {
     "PreToolUse": [
-      { "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|WebSearch|WebFetch|mcp__",
+      { "matcher": "^(Write|Edit|MultiEdit|NotebookEdit|Bash|WebSearch|WebFetch)$|^mcp__",
         "hooks": [ { "type": "command",
           "command": "bash /Users/you/.claude/hooks/orient_gate.sh" } ] }
     ]

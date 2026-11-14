@@ -3,15 +3,23 @@
 Why this exists: the template has no error handling. One wrong-shaped field throws inside
 render() and the page paints nothing, with no clue on screen about why.
 
-Usage:  python validate_board.py <path to board.json>
+Usage:  python validate_board.py <path to board.json> [--collected <collector json>]
+        (without --collected, <name>.collected.json beside the board file is read when it exists)
 Exit 0 and prints "ok" when the file is safe to render; exit 1 with the reason otherwise.
 """
 import json
+import os
 import re
 import sys
 
 OPTION_FIELDS = ("key", "label", "choose_if", "cost", "unblocks")
 DECISION_FIELDS = ("id", "title", "background", "why_now", "sources", "options")
+# A cold reader sees what each item is, what was asked and what was read before any verdict.
+# Required and non-blank on every decision and every 'left' row.
+CONTEXT_FIELDS = ("what", "ask", "read")
+# A run of this many non-space characters (a link, a path) cannot wrap on a phone screen, so the
+# card widens past the screen and clips it. Links belong in `sources`, which wrap.
+UNBREAKABLE = re.compile(r"\S{30,}")
 
 # A source counts as "the research it came from" if it is anything other than a pointer back at
 # the CHECKPOINT line that listed the decision: a doc, spec or note in any folder layout, or a URL.
@@ -52,7 +60,10 @@ def has_grounded_source(sources):
     return False
 
 
-def main(path):
+def main(path, collected_path=None):
+    if collected_path is None:
+        sibling = os.path.splitext(path)[0] + ".collected.json"
+        collected_path = sibling if os.path.exists(sibling) else None
     with open(path, encoding="utf-8") as fh:
         data = json.load(fh)
 
@@ -75,6 +86,20 @@ def main(path):
         if d["id"] in seen_ids:
             fail("%s: decision ids must be unique (the page saves picks under the id)" % where)
         seen_ids.add(d["id"])
+        for field in CONTEXT_FIELDS:
+            if not str(d.get(field) or "").strip():
+                fail("%s is missing '%s' (what it is / the ask in the user's or the source's own "
+                     "words / what was read): a cold reader needs all three before the options"
+                     % (where, field))
+        texts = [d.get(k) for k in ("title", "what", "ask", "read", "why_now", "default_reason")]
+        if isinstance(d.get("background"), list):
+            texts += d["background"]
+        for o in d.get("options") or []:
+            texts += [o.get(k) for k in ("label", "choose_if", "cost", "unblocks")]
+        for t in texts:
+            for tok in UNBREAKABLE.findall(str(t or "")):
+                fail("%s has an unbreakable run of text (%s) outside sources: it cannot wrap on a "
+                     "phone and gets cut off; move the link or path into sources" % (where, tok[:60]))
         if not isinstance(d["background"], list) or not d["background"]:
             fail("%s: background must be a non-empty LIST of paragraph strings "
                  "(the template renders one <p> per item)" % where)
@@ -116,11 +141,44 @@ def main(path):
     for l in data.get("left", []):
         if "title" not in l or "verdict" not in l:
             fail("every 'left' row needs a title and a verdict")
+        for field in CONTEXT_FIELDS:
+            if not str(l.get(field) or "").strip():
+                fail("left row %r is missing '%s': a verdict needs what the item is, the ask and what "
+                     "was read beside it" % (l["title"], field))
+
+    # Choices this session already put to the user stay on the board as they were told them
+    # (skill step 1b). Each offered entry names the decision id that carries it; an id that is
+    # missing or sits in 'left' fails.
+    ids = set(d["id"] for d in data["decisions"])
+    for o in data.get("offered", []):
+        if not o.get("topic") or not o.get("decision"):
+            fail("every 'offered' entry needs a topic and the decision id that carries it")
+        if o["decision"] not in ids:
+            fail("offered topic %r (decision %r) is not on the board: options already put to the "
+                 "user this session go on the board as they were told them, never into 'left'"
+                 % (o["topic"], o["decision"]))
+
+    # The board's own 'offered' list is checked against what the collector found in the session
+    # transcript (collect_decisions.ps1 -Out <name>.collected.json beside the board file, or
+    # --collected <path>): every collected offer needs a board 'offered' entry with the same 'at'.
+    if collected_path and os.path.exists(collected_path):
+        with open(collected_path, encoding="utf-8-sig") as fh:
+            collected = json.load(fh)
+        carried = set(str(o.get("at")) for o in data.get("offered", []))
+        for c in collected.get("offered") or []:
+            if str(c.get("at")) not in carried:
+                fail("the session offered the user a choice at %s (%s) that no board decision "
+                     "carries: add it to 'decisions' and list it in 'offered' with that 'at'"
+                     % (c.get("at"), str(c.get("text", ""))[:80]))
 
     print("ok: %d decision(s), %d left off" % (len(data["decisions"]), len(data.get("left", []))))
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        fail("usage: python validate_board.py <path to board.json>")
-    main(sys.argv[1])
+    argv = sys.argv[1:]
+    if len(argv) == 3 and argv[1] == "--collected":
+        main(argv[0], argv[2])
+    elif len(argv) == 1:
+        main(argv[0])
+    else:
+        fail("usage: python validate_board.py <path to board.json> [--collected <collector json>]")

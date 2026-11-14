@@ -80,7 +80,7 @@ try {
         Set-Content -LiteralPath $pending -Value ($t.Substring(0, [Math]::Min(200, $t.Length))) -Encoding UTF8
         if (-not (Test-Path -LiteralPath $advised)) {
             New-Item -ItemType File -Path $advised -Force | Out-Null
-            Write-Output '[grill-gate] This prompt reads like a build kickoff or first implementation. Run the grill-me interview BEFORE building: invoke the grill-me skill, ask 4-6 numbered questions per round (AskUserQuestion where the answers are a short list), never ask what CHECKPOINT.md / CLAUDE.md already answer, then write the Build spec to a file. If the user already answered everything in this prompt, say so in one line and write the Build spec anyway. If this is a continuation of already-specced work, an edit, a fix, or an unattended session, ignore this line. The first non-CHECKPOINT Write/Edit will be blocked once if no interview has happened.'
+            Write-Output '[grill-gate] This prompt reads like a build kickoff or first implementation. Run the grill-me interview BEFORE building: invoke the grill-me skill, ask short rounds of numbered questions, as many as the open choices need (AskUserQuestion where the answers are a short list), never ask what CHECKPOINT.md / CLAUDE.md already answer, then write the Build spec to a file. If the user already answered everything in this prompt, say so in one line and write the Build spec anyway. If this is a continuation of already-specced work, an edit, a fix, or an unattended session, ignore this line. The first non-CHECKPOINT Write/Edit will be blocked once if no interview has happened.'
         }
         exit 0
     }
@@ -101,7 +101,7 @@ try {
     $why = ''
     try { $why = (Get-Content -LiteralPath $pending -ErrorAction SilentlyContinue | Select-Object -First 1) } catch {}
     $msg = "[grill-gate] BLOCKED ONCE: this session opened with a build-kickoff prompt (" + $why + ") and no interview has happened -- no AskUserQuestion call and no grill-me Skill call in the transcript. " +
-           'Grill BEFORE you build. Invoke the grill-me skill now: 2-3 rounds of 4-6 numbered questions (AskUserQuestion for short-list answers), skipping anything CHECKPOINT.md / CLAUDE.md already answer, then write the Build spec into a spec file or CHECKPOINT.md and build. ' +
+           'Grill BEFORE you build. Invoke the grill-me skill now: short rounds of numbered questions, as many as the open choices need (AskUserQuestion for short-list answers), skipping anything CHECKPOINT.md / CLAUDE.md already answer, then write the Build spec into a spec file or CHECKPOINT.md and build. ' +
            'If you have genuinely judged this an edit/fix/continuation, an unattended session, or the user said to skip it, re-issue this exact call -- the gate fires only once per session.'
 
     # Re-issue of a call orient_gate just blocked -> pass it with the reminder instead of a second block.

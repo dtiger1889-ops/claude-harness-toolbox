@@ -26,6 +26,11 @@ enforced by the installed workspace rulebook; this file is the why.)
   the server") sounds routable. Litmus: "would inline cost more than ~30–40k tokens?"
   No → inline. Real incident: a ~4-command process restart routed to a sub-agent burned
   67k tokens / 26 tool calls to fire stop+start.
+- **Size and difficulty are separate questions.** Size decides WHETHER to use a helper;
+  reasoning need decides WHICH tier it runs on. A big job is not a hard job: a long but
+  checkable sweep can run on a mid tier.
+- **Check delegated work against the original brief**, not the helper's summary of what
+  it did.
 - **Once a sub-agent is warranted: intelligence > taste > cost, cost as tie-breaker
   ONLY.** Mechanical/bulk execution → mid tier. Anything user-facing or that ships →
   taste tier (usually: stays inline on the big model). Under subscription billing,
@@ -44,7 +49,9 @@ enforced by the installed workspace rulebook; this file is the why.)
   part survives.
 - **Pointers, not quotes.** "See CHECKPOINT.md → Open threads" beats pasting content.
 - **Trust the checkpoint.** Don't re-read files already summarized there.
-- **One open thread at a time.** Splitting attention floods context and hurts both tasks.
+- **One live ask at a time.** Serve the whole current request, but don't drift into an
+  unrelated open thread mid-turn: splitting attention floods context and hurts both
+  tasks. A blocker stops only the item it blocks; table that item and keep working the rest.
 - The file budgets themselves (CLAUDE.md ≤ 30 lines, CHECKPOINT ≤ 120 lines / ~30KB, the
   root-file character budget) live in
   [maintaining-the-harness.md](maintaining-the-harness.md).

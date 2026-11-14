@@ -32,6 +32,10 @@
   .head h2 { font: 700 21px/1.25 Fraunces, Georgia, serif; margin: 0; text-wrap: balance; }
   .state { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; padding-top: 6px; }
   .state.picked { color: var(--accent); font-weight: 600; }
+  .context { margin: 0; padding: 4px 20px 6px; max-width: 68ch; display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: 15px; }
+  .context dt { color: var(--muted); }
+  .context dd { margin: 0; }
+  details.left .context { padding: 4px 0 0; font-size: 13px; grid-template-columns: 1fr; }
   .background { padding: 0 20px 6px; max-width: 68ch; }
   .background p { margin: 6px 0; }
   .background .why { color: var(--muted); }
@@ -127,6 +131,7 @@
           <div class="state ${p.option ? 'picked' : ''}">${p.option ? 'picked ' + esc(optLabel(d, p.option)) : (p.unpicked ? 'pick removed' : (p.note ? 'note saved, no pick' : 'open'))}</div>
         </div>
         ${receiptHtml(d, p)}
+        ${ctxHtml(d)}
         <div class="background">${bg}<p class="why">${esc(d.why_now)}</p></div>
         <div class="sources">${src}</div>
         ${(!d.default && d.default_reason) ? '<div class="nodefault">No suggested pick: ' + esc(d.default_reason) + '</div>' : ''}
@@ -147,8 +152,15 @@
     // Always set both: a live rebuild with an empty `left` must clear the old rows.
     const left = DATA.left || [];
     $('#left').hidden = !left.length;
-    $('#leftTable').innerHTML = left.map(l => `<tr><td>${esc(l.title)}</td><td>${esc(l.verdict)}</td></tr>`).join('');
+    $('#leftTable').innerHTML = left.map(l => `<tr><td>${esc(l.title)}${ctxHtml(l)}</td><td>${esc(l.verdict)}</td></tr>`).join('');
     if (focus) { const f = document.getElementById(focus); if (f) { f.focus(); if (typeof sel === 'number' && f.setSelectionRange) f.setSelectionRange(sel, sel); } }
+  }
+
+  // What the item is, the ask in the user's or the source's own words, and what was read, before any verdict.
+  function ctxHtml(x) {
+    if (!x.what && !x.ask && !x.read) return '';
+    const row = (k, v) => v ? '<dt>' + k + '</dt><dd>' + esc(v) + '</dd>' : '';
+    return '<dl class="context">' + row('what this is', x.what) + row('the ask', x.ask) + row('what was read', x.read) + '</dl>';
   }
 
   function receiptHtml(d, p) {

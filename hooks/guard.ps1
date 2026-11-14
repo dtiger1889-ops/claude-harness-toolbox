@@ -17,12 +17,28 @@ try {
     $tool = "$($j.tool_name)"
     $ti = $j.tool_input
 
+    # The same script can serve Codex (registered in ~/.codex/hooks.json). Codex events carry
+    # turn_id; its shell commands arrive as tool_name Bash but run in PowerShell; and it
+    # enforces only the JSON permissionDecision deny form, not exit 2 + stderr. So under Codex
+    # a block is written as that JSON, Bash text gets the PowerShell checks, and the MSYS
+    # backslash-path check (check 2) is skipped.
+    $isCodex = ($null -ne $j.PSObject.Properties['turn_id']) -or ($tool -eq 'apply_patch')
+    function Block([string]$Reason) {
+        if ($isCodex) {
+            $out = @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; permissionDecision = 'deny'; permissionDecisionReason = $Reason } } | ConvertTo-Json -Compress -Depth 4
+            [Console]::Out.Write($out)
+            exit 0
+        }
+        [Console]::Error.WriteLine($Reason)
+        exit 2
+    }
+
     # Gather PowerShell-bound text only: a PowerShell command, or a write to a .ps1/.psm1/.psd1.
     # This is the only language with a documented non-ASCII parse-break. Everything else
     # (prose, Python, JS, JSON, ...) is intentionally left alone.
     $isPwsh = $false
     $pwshText = ""
-    if ($tool -eq 'PowerShell') {
+    if ($tool -eq 'PowerShell' -or ($isCodex -and $tool -eq 'Bash')) {
         $isPwsh = $true
         $pwshText = [string]$ti.command
     }
@@ -47,8 +63,7 @@ try {
         }
         foreach ($k in $banned.Keys) {
             if ($pwshText.Contains($k)) {
-                [Console]::Error.WriteLine("BLOCKED by guard hook: non-ASCII (" + $banned[$k] + ") in PowerShell. PS 5.1 misdecodes it as Windows-1252 and the parse breaks. Use ASCII: -- for dashes, straight quotes.")
-                exit 2
+                Block ("BLOCKED by guard hook: non-ASCII (" + $banned[$k] + ") in PowerShell. PS 5.1 misdecodes it as Windows-1252 and the parse breaks. Use ASCII: -- for dashes, straight quotes.")
             }
         }
     }
@@ -58,7 +73,7 @@ try {
     # AND unquoted drive-paths both get mangled by MSYS. Strip single-quoted spans
     # first, then match anywhere in what remains. (The original quote-only pattern let
     # unquoted paths slip through -- confirmed in live transcripts before widening.)
-    if ($tool -eq 'Bash') {
+    if ($tool -eq 'Bash' -and -not $isCodex) {
         $bashCmd = [string]$ti.command
         $outsideSq = $bashCmd -replace "'[^']*'", ' '
         # Path-start char required after the backslash: real drive paths look like
@@ -85,8 +100,7 @@ try {
             foreach ($seg in ($cmdText -split '[|;&\r\n]+')) {
                 $bare = $seg -replace "'[^']*'", ' ' -replace '"[^"]*"', ' '
                 if (($bare -match '--no-ignore') -and ($seg -match '\bgrep\b') -and ($seg -notmatch '\b(rg|ripgrep)\b')) {
-                    [Console]::Error.WriteLine("BLOCKED by guard hook: '--no-ignore' is a ripgrep flag, NOT a GNU grep flag. grep exits 2 with a usage error and prints nothing, so a scan that never ran looks exactly like a clean scan. Drop the flag (plain grep does not read .gitignore anyway) or call rg --no-ignore. To scan a publish set: git ls-files -z | xargs -0 grep -inE 'pattern'  (exit 1 = clean, 0 = hits). And never trust an empty security scan without a control probe proving the pattern matches something.")
-                    exit 2
+                    Block ("BLOCKED by guard hook: '--no-ignore' is a ripgrep flag, NOT a GNU grep flag. grep exits 2 with a usage error and prints nothing, so a scan that never ran looks exactly like a clean scan. Drop the flag (plain grep does not read .gitignore anyway) or call rg --no-ignore. To scan a publish set: git ls-files -z | xargs -0 grep -inE 'pattern'  (exit 1 = clean, 0 = hits). And never trust an empty security scan without a control probe proving the pattern matches something.")
                 }
             }
         }

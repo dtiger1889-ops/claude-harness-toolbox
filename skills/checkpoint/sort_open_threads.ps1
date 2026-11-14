@@ -50,7 +50,7 @@ $cur = $null
 foreach ($ln in $body) {
     if ($ln -match '^\*\*(Owner-gated|Agent-side)\*\*\s*$') { $hadHeaders = $true; $cur = $null; continue }
     if ($ln -match '^-\s') {
-        $cur = [pscustomobject]@{ head = $ln; tail = (New-Object System.Collections.Generic.List[string]); rank = 99 }
+        $cur = [pscustomobject]@{ head = $ln; tail = (New-Object System.Collections.Generic.List[string]); rank = 99; idx = $items.Count }
         $items.Add($cur); continue
     }
     if ($null -eq $cur) {
@@ -74,7 +74,7 @@ foreach ($it in $items) {
     $it.rank = if ($gate -lt 0 -or $cplx -lt 0) { 99 } else { $gate * 2 + $cplx }
 }
 $before = @($items | ForEach-Object { $_.head })
-$sorted = @($items | Sort-Object -Property rank -Stable)
+$sorted = @($items | Sort-Object -Property rank, idx)   # -Stable is PS 6.1+ only; idx keeps the order stable on Windows PowerShell 5.1
 $after = @($sorted | ForEach-Object { $_.head })
 $moved = 0
 for ($i = 0; $i -lt $before.Count; $i++) { if ($before[$i] -ne $after[$i]) { $moved++ } }

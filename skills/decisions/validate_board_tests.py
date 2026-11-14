@@ -19,6 +19,9 @@ def base_decision(**overrides):
     d = {
         "id": "test-decision",
         "title": "A fork the owner needs to pick?",
+        "what": "The nightly job that copies board picks into the project notes.",
+        "ask": "Task note reply: \"make picks land without me pressing anything\"",
+        "read": "the job's script and its last run log",
         "background": ["Paragraph one.", "Paragraph two."],
         "why_now": "It gates the next step.",
         "sources": [{"label": "the research", "path": "research/some-finding-2026-09-22.md"}],
@@ -34,15 +37,19 @@ def board_with(decision):
     return {"project": "example", "generated": "2026-09-22 00:00 UTC", "decisions": [decision], "left": []}
 
 
-def run_validator(data):
+def run_validator(data, collected=None, explicit=False):
     tmpdir = tempfile.mkdtemp(prefix="validate_board_test_")
     path = os.path.join(tmpdir, "board.json")
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(data, fh)
-    proc = subprocess.run(
-        [sys.executable, VALIDATOR, path],
-        capture_output=True, text=True,
-    )
+    args = [sys.executable, VALIDATOR, path]
+    if collected is not None:
+        cpath = os.path.join(tmpdir, "elsewhere.json" if explicit else "board.collected.json")
+        with open(cpath, "w", encoding="utf-8") as fh:
+            json.dump(collected, fh)
+        if explicit:
+            args += ["--collected", cpath]
+    proc = subprocess.run(args, capture_output=True, text=True)
     return proc.returncode, proc.stdout + proc.stderr
 
 
@@ -178,6 +185,73 @@ for i, p in enumerate(["design.md", "C:\\work\\demo\\docs\\plan.md", "notes/pric
     check("15.%d %r passes" % (i, p), code == 0, "code=%d out=%s" % (code, out))
 code, out = run_validator(board_with(base_decision(sources=[{"label": "thread", "path": "C:\\work\\demo\\CHECKPOINT.md:3"}])))
 check("15b Windows CHECKPOINT pointer alone fails", code == 1 and "research" in out, "code=%d out=%s" % (code, out))
+
+# 16. every decision says what it is, the ask and what was read, before any verdict
+for field in ("what", "ask", "read"):
+    bad = base_decision()
+    del bad[field]
+    code, out = run_validator(board_with(bad))
+    check("16 decision missing %r fails" % field, code == 1 and field in out and "test-decision" in out,
+          "code=%d out=%s" % (code, out))
+code, out = run_validator(board_with(base_decision(what="   ")))
+check("16d blank what fails", code == 1 and "what" in out, "code=%d out=%s" % (code, out))
+
+# 17. every left row carries the same three, beside its verdict
+GOOD_LEFT = {"title": "Rename the log folder", "verdict": "not: mechanical",
+             "what": "The folder the job writes to.", "ask": "Thread: \"tidy the log names\"",
+             "read": "the CHECKPOINT thread"}
+for field in ("what", "ask", "read"):
+    row = dict(GOOD_LEFT)
+    del row[field]
+    data = board_with(base_decision())
+    data["left"] = [row]
+    code, out = run_validator(data)
+    check("17 left row missing %r fails" % field, code == 1 and field in out and "Rename the log folder" in out,
+          "code=%d out=%s" % (code, out))
+data = board_with(base_decision())
+data["left"] = [GOOD_LEFT]
+code, out = run_validator(data)
+check("17d complete left row passes", code == 0, "code=%d out=%s" % (code, out))
+
+# 18. options this session already offered the user stay on the board
+data = board_with(base_decision())
+data["offered"] = [{"topic": "how to record the server crash", "decision": "test-decision"}]
+code, out = run_validator(data)
+check("18 offered topic on the board passes", code == 0, "code=%d out=%s" % (code, out))
+data = board_with(base_decision())
+data["left"] = [dict(GOOD_LEFT, id="crash-logging")]
+data["offered"] = [{"topic": "how to record the server crash", "decision": "crash-logging"}]
+code, out = run_validator(data)
+check("18b offered topic moved to left fails", code == 1 and "offered" in out and "crash" in out,
+      "code=%d out=%s" % (code, out))
+data = board_with(base_decision())
+data["offered"] = [{"topic": "jump feel"}]
+code, out = run_validator(data)
+check("18c offered entry without a decision id fails", code == 1 and "offered" in out, "code=%d out=%s" % (code, out))
+
+# 19. every offer the collector found must be carried, not only the ones the board declares
+COLLECTED = {"project": "example", "candidates": [], "warnings": [],
+             "offered": [{"at": "2026-10-26T06:01:00Z", "kind": "text", "text": "Option A -- event log ..."}]}
+code, out = run_validator(board_with(base_decision()), COLLECTED)
+check("19 collected offer missing from the board fails", code == 1 and "2026-10-26T06:01:00Z" in out,
+      "code=%d out=%s" % (code, out))
+data = board_with(base_decision())
+data["offered"] = [{"topic": "crash logging", "decision": "test-decision", "at": "2026-10-26T06:01:00Z"}]
+code, out = run_validator(data, COLLECTED)
+check("19b collected offer carried by a decision passes", code == 0, "code=%d out=%s" % (code, out))
+code, out = run_validator(board_with(base_decision()), COLLECTED, explicit=True)
+check("19c --collected path is read too", code == 1 and "2026-10-26T06:01:00Z" in out, "code=%d out=%s" % (code, out))
+code, out = run_validator(board_with(base_decision()), {"offered": []})
+check("19d no collected offers passes", code == 0, "code=%d out=%s" % (code, out))
+
+# 20. a link or path in body text cannot wrap on a phone; the same link in sources passes
+LONG = "https://example.com/a/very/long/path/that/does/not/wrap"
+code, out = run_validator(board_with(base_decision(background=["See " + LONG + " for detail."])))
+check("20 link in background fails", code == 1 and "unbreakable" in out, "code=%d out=%s" % (code, out))
+code, out = run_validator(board_with(base_decision(options=[dict(GOOD_OPTION_A, cost=LONG), GOOD_OPTION_B])))
+check("20b link in an option fails", code == 1 and "unbreakable" in out, "code=%d out=%s" % (code, out))
+code, out = run_validator(board_with(base_decision(sources=[{"label": "the page", "path": LONG}])))
+check("20c same link in sources passes", code == 0, "code=%d out=%s" % (code, out))
 
 print("---- %d passed, %d failed ----" % (pass_count, fail_count))
 sys.exit(1 if fail_count else 0)

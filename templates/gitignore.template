@@ -1,5 +1,8 @@
 # Workspace-baseline .gitignore — rename to `.gitignore` when copying.
-# v1 — 2026-04-29
+# v2 — 2026-11-14
+# PRIVATE repos ignore only sensitive data (secrets, personal or message data)
+# and the machine junk below; never a file the project needs to work or resume
+# (CHECKPOINT.md, CLAUDE.md, specs, docs).
 
 # ---- Editor / OS noise ----
 .DS_Store
@@ -26,7 +29,7 @@ build/
 .tmp.driveupload/
 
 # ---- Harness state ----
-# CHECKPOINT.md is gitignored by default — it changes every session and
-# would noise up history. REMOVE this line for repos where you want
-# resumability across machines (home PC + cloud Claude Code sandbox).
-CHECKPOINT.md
+# CHECKPOINT.md is TRACKED in private repos: it is the resume state, so a
+# fresh clone (another machine, a cloud sandbox) can pick up where you left off.
+# Public repos only: uncomment the next line.
+# CHECKPOINT.md

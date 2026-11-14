@@ -134,6 +134,14 @@ function Byte-Count([string[]]$lines, [string]$nl) {
 
 # --- Validate checkpoint + range -------------------------------------------------
 if (-not (Test-Path -LiteralPath $Checkpoint)) { Fail "Checkpoint not found: $Checkpoint" }
+# JSONL mode: changelog.jsonl beside the CHECKPOINT means history is append-only in that file.
+# Moving entries into a Markdown archive would split history across two places, so refuse before
+# reading or writing anything.
+$jsonlBeside = Join-Path (Split-Path -Parent (Resolve-Path -LiteralPath $Checkpoint).Path) 'changelog.jsonl'
+if (Test-Path -LiteralPath $jsonlBeside) {
+  Write-Output "[archive-changelog] REFUSED: this project keeps its changelog in changelog.jsonl (JSONL mode), so there is nothing to archive. Add new entries with: python <skill-dir>/changelog_jsonl.py append --jsonl <changelog.jsonl> --entry-file <entry.md> --checkpoint <CHECKPOINT.md>. Nothing was moved."
+  exit 1
+}
 try { $cp = Get-Lines $Checkpoint } catch {
   Write-Log $logFileTop ("FAIL  moved {0}..{1} | cp {2} | arc {3} | ERROR (checkpoint read): {4}" -f $FromLine, $ToLine, $Checkpoint, $Archive, $_.Exception.Message)
   Fail "could not read the checkpoint after retrying a locked file (nothing written): $($_.Exception.Message)"

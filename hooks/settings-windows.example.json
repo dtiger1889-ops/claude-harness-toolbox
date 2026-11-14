@@ -37,7 +37,7 @@
         ]
       },
       {
-        "matcher": "Bash|PowerShell",
+        "matcher": "Bash|PowerShell|Monitor",
         "hooks": [
           {
             "type": "command",
@@ -46,7 +46,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|WebSearch|WebFetch|mcp__",
+        "matcher": "^(Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|WebSearch|WebFetch)$|^mcp__",
         "hooks": [
           {
             "type": "command",

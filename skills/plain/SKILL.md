@@ -13,8 +13,8 @@ description: >-
 
 1. Identify the target passage; ask only if the target is ambiguous.
 2. Look up unfamiliar project codes, tags, acronyms, and phase names in their source files. Do not guess. If a meaning is unavailable, say that explicitly.
-3. Re-express all the substantive content in ordinary sentences. Expand compressed clauses and define unavoidable technical terms at first use.
-4. Use short paragraphs or a clear list. Preserve qualifications, uncertainty, and actionable details; add no new analysis or next steps.
+3. Re-express all the substantive content in ordinary sentences; this is a translation, not a shorter summary. Expand compressed clauses and define unavoidable technical terms at first use. Introduce no new shorthand: swapping one code for another leaves the reader no better off.
+4. Answer first, then short paragraphs or a clear list. Preserve qualifications, uncertainty, and actionable details; add no new analysis or next steps.
 
 Example with fictional terminology:
 - Dense: "The F027 gate blocks the B13 rung until the file hashes reconcile."

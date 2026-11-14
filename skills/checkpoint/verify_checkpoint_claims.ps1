@@ -4,8 +4,21 @@
 # Coverage (honest): dead paths = HARD FAIL; git-state claims = REVIEW block to reconcile;
 # stale-dated / owner-gated threads = PROMPTS unless undispositioned, then HARD FAIL (see below);
 # tag/jargon/attribution prompts = advisory only; a new spec with no sourced Prior art = HARD FAIL
-# (3.12). Semantic staleness is NOT detected here.
+# (3.12); an undispositioned model recommendation in research/ = HARD FAIL (3.8); a broken
+# changelog.jsonl in JSONL mode = HARD FAIL (3.10). Semantic staleness is NOT detected here.
 # 3.6 attribution prompts added 2026-09-09 (unattributed verdicts / undated owner decisions).
+# 3.6b notes-decision prompts, 3.6c attribution-source prompts and 3.7b defect-on-owner prompts
+# are advisory only.
+#
+# 3.8 Recommendation failures. A file directly under <project>/research/ whose LastWriteTimeUtc is
+# later than the CHECKPOINT's own previous `Last updated:` stamp, and whose content holds the dated
+# attribution "model recommendation -- YYYY-MM-DD" (case-insensitive), must be named (basename) in
+# an [owner]-tagged Open-threads bullet in this CHECKPOINT, or in a tracker note (a *.md in
+# $env:HARNESS_TRACKER_DIR whose frontmatter `project:` matches this project's folder name) --
+# otherwise the owner has no way to know the recommendation was ever filed. Undispositioned
+# candidates print under "RECOMMENDATION FAILURES" and are a HARD FAIL (exit 2). Opt-out: a line
+# `recommendations: advisory` in <project>/.checkpoint-verify-ignore downgrades them to REVIEW
+# lines. An unparseable `Last updated:` stamp in the first 5 lines skips the check with a REVIEW line.
 #
 # Staleness disposition gate (built 2026-09-14; motivation: the maintainer's lapse ledger rows 1, 2, 9,
 # 14 -- the verifier printed a staleness prompt labelled "not a failure" and the model stamped
@@ -40,7 +53,14 @@ $WorkspaceRoot = if ($env:HARNESS_WORKSPACE_ROOT) { $env:HARNESS_WORKSPACE_ROOT 
 $NotesRoot = $env:HARNESS_NOTES_ROOT
 # Owner gate tag: [owner] always counts; HARNESS_OWNER_TAG adds your own name (e.g. Sam -> [Sam]).
 $OwnerAlt = 'owner'
-if ($env:HARNESS_OWNER_TAG) { $OwnerAlt = 'owner|' + [regex]::Escape($env:HARNESS_OWNER_TAG.Trim('[', ']', ' ')) }
+$OwnerNameEsc = $null
+if ($env:HARNESS_OWNER_TAG) {
+    $OwnerNameEsc = [regex]::Escape($env:HARNESS_OWNER_TAG.Trim('[', ']', ' '))
+    $OwnerAlt = 'owner|' + $OwnerNameEsc
+}
+# Words that name the owner in prose (used by the 3.6b/3.6c/3.7b prompts): "the owner", "the user",
+# plus your own name when HARNESS_OWNER_TAG is set.
+$OwnerWho = if ($OwnerNameEsc) { "(?:the owner|the user|$OwnerNameEsc)" } else { '(?:the owner|the user)' }
 $text = [System.IO.File]::ReadAllText($ckPath)
 $lines = [System.IO.File]::ReadAllLines($ckPath)
 $defects = @()
@@ -273,7 +293,22 @@ function Judge-Item {
     if ($text -match '\[high\]')  { $rank += 1 }
     if ($rank -lt $script:prevRank -and -not $script:orderFlagged) { $script:tagPrompts += "ORDER (owner-low, owner-high, agent-low, agent-high) breaks at: $h"; $script:orderFlagged = $true }
     $script:prevRank = $rank
+    # 3.7b DEFECT ON OWNER: an owner-tagged bullet that names a defect in the workspace's own tools
+    # (a guard's false match, a failing script) and no step only the owner can take. The agent
+    # diagnoses and fixes its own tools; only an approval, an interruption of the owner's running
+    # work, or a physical or UI-only step is the owner's. An owner step must sit next to an owner
+    # word (you/your/the owner/the user/he/his/she/her/they/their), so incidental words elsewhere do
+    # not exempt it; pick/choose/decide never exempt (a session can phrase its own defect as a
+    # choice). A refusal by the runtime's permission check exempts: that call waits for the owner.
+    # Prompt only.
+    if ($text -match "\[($OwnerAlt)\]" -and $text -match $script:defectRx -and $text -notmatch $script:ownerStepRx) {
+        $script:tagPrompts += "DEFECT ON OWNER (the agent diagnoses and fixes its own tools; retag [agent], or name the one owner-only step left: approval, interruption, physical or UI-only): $h"
+    }
 }
+$defectRx = '(?i)\b(false (positive|match|alarm|hit|flag)|(refuses|refused|blocked|fails|failed) (because|on)|bugs?|broken|regression|misfires?|(guard|scanner|hook|script|check|gate|verifier|test)s? (refused|refuses|blocked|blocks|fails?|failed|failing|errors?))\b'
+$ownerWords = 'you|your|owner|owner''s|user|user''s|he|his|she|her|they|their'
+if ($OwnerNameEsc) { $ownerWords += "|$OwnerNameEsc|$OwnerNameEsc's" }
+$ownerStepRx = "(?i)\b($ownerWords)\b\W+(\w+\W+){0,3}?(approv\w*|sign(s|ed|ing)? in|log(s|ged|ging)? in|oauth|buy\w*|purchas\w*|pay\w*|install\w*|plug\w*|tap\w*|click\w*|restart\w*|reboot\w*|call\w*|phone|device|account|card|money|preferen\w*|prefer\w*|taste|priorit\w*|password|token)\b|\bauto-mode\b|\b(permission|safety) check\b|\bclassifier\b"
 foreach ($ln in $lines) {
     if ($ln -match '^##\s') { Judge-Item $itemText $itemHead; $itemText = $null; $inThreads = ($ln -match '^##\s+Open threads') ; continue }
     if (-not $inThreads) { continue }
@@ -359,6 +394,144 @@ foreach ($ln in $lines) {
 }
 if ($attrTotal -gt $attrCap) { $attrPrompts += "... and $($attrTotal - $attrCap) more" }
 
+# --- 3.6b Notes-decision prompts -----------------------------------------------
+# A note in your notes system whose "Decision ..." heading was written by a model reads as the
+# owner's decision to the next session. Runs only when HARNESS_NOTES_ROOT is set: for every note this
+# CHECKPOINT points at (a backticked path or markdown link in a live section that resolves under the
+# notes root), flag any "Decision" heading or bold lead line with no `<owner> decision -- <date>` tag
+# (owner = "owner", "user" or your HARNESS_OWNER_TAG name) on it or the 3 lines below. A line openly
+# tagged as a model or author-unknown verdict is not flagged. Wikilinks ([[...]]) are not followed.
+# Prompt only: never a failure, never changes the exit code.
+if ($NotesRoot) {
+    try {
+        $notesFull = [System.IO.Path]::GetFullPath($NotesRoot)
+        $notePaths = New-Object System.Collections.Generic.HashSet[string]
+        if (Test-Path -LiteralPath $notesFull) {
+            foreach ($c in $cands) {
+                $t = $c.Trim().Trim('"').Trim("'")
+                if ($t -notmatch '\.md$' -or $t -match '[|<>*?{}]') { continue }
+                $exp = ($t -replace '^~', $env:USERPROFILE) -replace '/', '\'
+                $p = if ($exp -match '^[A-Za-z]:') { $exp } else { Join-Path $notesFull $exp }
+                if ((Test-Path -LiteralPath $p -PathType Leaf) -and
+                    ([System.IO.Path]::GetFullPath($p)).StartsWith($notesFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    [void]$notePaths.Add([System.IO.Path]::GetFullPath($p))
+                }
+            }
+        }
+        $ownerDecRx = '(?i)\b(owner|user'
+        if ($OwnerNameEsc) { $ownerDecRx += "|$OwnerNameEsc" }
+        # Em and en dash built from code points so the file stays ASCII (powershell.exe 5.1 reads a
+        # BOM-less script as ANSI).
+        $ownerDecRx += ')\s+decision\s*(--|-|' + [char]0x2014 + '|' + [char]0x2013 + '|:)\s*20\d{2}-\d{2}-\d{2}'
+        $vdTotal = 0
+        foreach ($vn in $notePaths) {
+            $vl = [System.IO.File]::ReadAllLines($vn)
+            for ($i = 0; $i -lt $vl.Count; $i++) {
+                $hl = $vl[$i]
+                if ($hl -notmatch '(?i)^\s*(#{1,6}\s|\*\*|-\s+\*\*).{0,40}\bdecision') { continue }
+                $win = ($vl[$i..([Math]::Min($i + 3, $vl.Count - 1))]) -join ' '
+                if ($win -match $ownerDecRx) { continue }
+                if ($hl -match '(?i)\b(model|Codex|Claude|author unknown)\b') { continue }   # openly a model draft
+                $vdTotal++
+                if ($vdTotal -le $attrCap) {
+                    $head = $hl.Trim()
+                    if ($head.Length -gt 80) { $head = $head.Substring(0, 80) + '...' }
+                    $rel = $vn.Substring($notesFull.Length).TrimStart('\')
+                    $attrPrompts += "NOTE DECISION UNTAGGED ($rel line $($i + 1); treat as a model draft unless it carries an '<owner> decision -- <date>' tag): $head"
+                }
+            }
+        }
+        if ($vdTotal -gt $attrCap) { $attrPrompts += "... and $($vdTotal - $attrCap) more note decision line(s)" }
+    } catch {
+        $attrPrompts += "NOTE DECISION CHECK skipped (error reading a pointed-at note: $($_.Exception.Message))"
+    }
+}
+
+# --- 3.6c Attribution source prompts -------------------------------------------
+# A line recorded as the owner's decision gets built on as theirs, so a NEW line that credits the
+# owner must quote their words, name its source, or say "evidence unavailable"; one that credits
+# them with a hold, pause, skip or cancel needs their own action word inside a quote of theirs.
+# "New" = not in the baseline: the file at git HEAD, or the file named by $env:HARNESS_VERIFY_BASELINE
+# (tests); with neither, lines that carry today's or yesterday's UTC date. Owner words: "the owner",
+# "the user", plus your HARNESS_OWNER_TAG name. Headings and [owner] tags are not credits.
+# Prompt only: never a failure, exit code unchanged.
+$srcPrompts = @()
+$srcTotal = 0
+try {
+    $baseLines = $null
+    if ($env:HARNESS_VERIFY_BASELINE -and (Test-Path -LiteralPath $env:HARNESS_VERIFY_BASELINE)) {
+        $baseLines = [System.IO.File]::ReadAllLines($env:HARNESS_VERIFY_BASELINE)
+    } else {
+        try {
+            $gpsi = New-Object System.Diagnostics.ProcessStartInfo
+            $gpsi.FileName = 'git'
+            $gpsi.Arguments = "-C `"$projRoot`" show `"HEAD:./$(Split-Path -Leaf $ckPath)`""
+            $gpsi.RedirectStandardOutput = $true; $gpsi.RedirectStandardError = $true; $gpsi.UseShellExecute = $false
+            $gpsi.StandardOutputEncoding = New-Object System.Text.UTF8Encoding($false)
+            $gp = [System.Diagnostics.Process]::Start($gpsi)
+            $gout = $gp.StandardOutput.ReadToEnd(); [void]$gp.StandardError.ReadToEnd(); $gp.WaitForExit()
+            if ($gp.ExitCode -eq 0) { $baseLines = $gout -split "`r?`n" }
+        } catch { $baseLines = $null }
+    }
+    $baseSet = New-Object 'System.Collections.Generic.HashSet[string]'
+    if ($null -ne $baseLines) { foreach ($bl in $baseLines) { [void]$baseSet.Add($bl.Trim()) } }
+    $today = [DateTime]::UtcNow.ToString('yyyy-MM-dd'); $yday = [DateTime]::UtcNow.AddDays(-1).ToString('yyyy-MM-dd')
+    $creditRx = "(?i)\b$OwnerWho\s+(decision|rule|pick|correction|ask)\b|\b$OwnerWho's\s+(words|ask|pick|rule|decision|call|choice)\b|\b$OwnerWho\s*(,|:|--)|\(\s*$OwnerWho\b|\b$OwnerWho\s+(said|says|asked|wants|wanted|chose|picked|decided|approved|confirmed|told|ruled|insisted)\b"
+    $holdRx = '(?i)\b(on hold|hold|held|paused?|skip(ped|s)?|cancel(l?ed|s)?|deferred|parked)\b'
+    $actionRx = '(?i)\b(hold|wait|skip|stop|pause|cancel|drop|defer|later|not now|don''?t|do not|leave it)\b'
+    # A quote is THEIRS only when it is introduced as theirs ("<owner> ...: / said / asked / -- / ,"
+    # then the quote, within 40 characters and no sentence break) or tagged right after it
+    # ("..." (<owner> ...). Any other quotation in the line is not their source. Curly quotes are
+    # built from code points so the file stays ASCII (powershell.exe 5.1 reads a BOM-less script as ANSI).
+    $lq = [string][char]0x201C; $rq = [string][char]0x201D
+    $qRx = "[`"$lq]([^`"$rq]{2,})[`"$rq]"
+    $hisQuoteRx = "(?i)\b$OwnerWho\b[^`"$lq;.]{0,40}?(:|\bsaid\b|\bsays\b|\basked\b|\bwrote\b|\btold\b|--|,)\s*$qRx|$qRx\s*\(\s*$OwnerWho\b"
+    $otherSourceRx = '(?i)evidence unavailable|board pick|transcript:|tracker row|\breply\b|changelog|\.md\b|\.jsonl\b|grill q\d+'
+    # Logical records: a line plus its indented continuation lines (a wrapped bullet is one record).
+    $records = New-Object System.Collections.Generic.List[object]
+    $cur = $null
+    foreach ($ln in $lines) {
+        if ($ln.Trim().Length -eq 0 -or $ln.Trim() -match '^#') { if ($cur) { $records.Add($cur) }; $cur = $null; continue }
+        $isCont = ($cur -and $ln -match '^\s{2,}\S' -and $ln -notmatch '^\s*([-*]|\d+[.)])\s')
+        if ($isCont) { $cur.Parts.Add($ln.Trim()); continue }
+        if ($cur) { $records.Add($cur) }
+        $cur = @{ Parts = New-Object System.Collections.Generic.List[string] }
+        $cur.Parts.Add($ln.Trim())
+    }
+    if ($cur) { $records.Add($cur) }
+    foreach ($rec in $records) {
+        $t = [string]::Join(' ', $rec.Parts.ToArray())
+        if ($null -ne $baseLines) {
+            if (-not ($rec.Parts | Where-Object { -not $baseSet.Contains($_) })) { continue }
+        } elseif ($t -notmatch [regex]::Escape($today) -and $t -notmatch [regex]::Escape($yday)) { continue }
+        if ($t -notmatch $creditRx) { continue }
+        $why = $null
+        if ($t -notmatch $hisQuoteRx -and $t -notmatch $otherSourceRx) {
+            $why = "NAME THE SOURCE (quote the owner's words, name the source, or write 'evidence unavailable' / relabel it model)"
+        } else {
+            # A clause that credits the owner with a hold/skip/cancel needs their action word in a quote of theirs.
+            foreach ($cl in ($t -split ';|(?<=[.!?])\s+')) {
+                if ($cl -notmatch $creditRx -or $cl -notmatch $holdRx) { continue }
+                $his = @([regex]::Matches($cl, $hisQuoteRx) | ForEach-Object { $_.Groups[2].Value + $_.Groups[3].Value })
+                if (-not ($his | Where-Object { $_ -match $actionRx })) {
+                    $why = "HOLD WITHOUT THE OWNER'S ACTION WORD (a hold, pause, skip or cancel credited to the owner quotes their own action word -- hold, wait, skip, stop, drop -- or is relabelled model)"
+                    break
+                }
+            }
+        }
+        if (-not $why) { continue }
+        $srcTotal++
+        if ($srcPrompts.Count -lt $attrCap) {
+            $head = $t -replace '^\-\s*', ''
+            if ($head.Length -gt 90) { $head = $head.Substring(0, 90) + '...' }
+            $srcPrompts += "${why}: $head"
+        }
+    }
+    if ($srcTotal -gt $attrCap) { $srcPrompts += "... and $($srcTotal - $attrCap) more" }
+} catch {
+    $srcPrompts += "ATTRIBUTION SOURCE CHECK skipped (error: $($_.Exception.Message))"
+}
+
 # --- 3.9 Verified-claim prompts (added 2026-09-23) ----------------------------
 # A stale "verified" claim is trusted more than an ordinary claim, so it costs a future session
 # the most when it has quietly gone false. A Status or Key decisions line that uses a
@@ -400,6 +573,78 @@ foreach ($ln in $lines) {
     }
 }
 if ($verTotal -gt $verCap) { $verPrompts += "... and $($verTotal - $verCap) more" }
+
+# --- 3.8 Recommendation failures -------------------------------------------------
+# See header for the rationale and the .checkpoint-verify-ignore opt-out.
+$recoFailures = @()
+$recoAdvisory = $false
+foreach ($igl in @($igRaw)) {
+    if ($igl -match '^recommendations\s*:\s*advisory\s*$') { $recoAdvisory = $true }
+}
+# Scan the first 5 lines for the stamp, exactly as finish-checkpoint.ps1 does (a project file puts
+# its title on line 1 and the stamp on line 2).
+$stampMatch = $null
+for ($si = 0; $si -lt [Math]::Min(5, $lines.Count); $si++) {
+    $m = [regex]::Match($lines[$si], '^Last updated:\s*(20\d{2}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s+UTC')
+    if ($m.Success) { $stampMatch = $m; break }
+}
+$researchDir = Join-Path $projRoot 'research'
+if (-not (Test-Path -LiteralPath $researchDir)) {
+    # nothing to check
+} elseif (-not $stampMatch) {
+    $reviews += "RECOMMENDATION CHECK SKIPPED -- no parseable 'Last updated' stamp in the first 5 lines (expected 'Last updated: YYYY-MM-DD HH:MM UTC'); cannot tell which research/ files are new."
+} else {
+    try {
+        $prevStamp = [datetime]::ParseExact("$($stampMatch.Groups[1].Value) $($stampMatch.Groups[2].Value)", 'yyyy-MM-dd HH:mm', $null)
+        $prevStamp = [datetime]::SpecifyKind($prevStamp, [System.DateTimeKind]::Utc)
+        $slug = Split-Path -Leaf $projRoot
+        $trackerFiles = @()
+        if ($env:HARNESS_TRACKER_DIR -and (Test-Path -LiteralPath $env:HARNESS_TRACKER_DIR)) {
+            $trackerFiles = @(Get-ChildItem -LiteralPath $env:HARNESS_TRACKER_DIR -Filter '*.md' -File -ErrorAction SilentlyContinue)
+        }
+        $recoRx = '(?i)model recommendation\s*(--|-|' + [char]0x2014 + ')\s*20\d{2}-\d{2}-\d{2}'
+        $candFiles = @(Get-ChildItem -LiteralPath $researchDir -Filter '*.md' -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -notmatch '(?i)archive' -and $_.LastWriteTimeUtc -gt $prevStamp })
+        foreach ($cf in $candFiles) {
+            $body = [System.IO.File]::ReadAllText($cf.FullName)
+            if ($body -notmatch $recoRx) { continue }   # dated attribution form only; a quoted mention in prose is not a recommendation
+            $baseNoExt = $cf.BaseName
+            $baseExt = $cf.Name
+            $dispositioned = $false
+            foreach ($sf in $trackerFiles) {
+                $sfText = [System.IO.File]::ReadAllText($sf.FullName)
+                if ($sfText.IndexOf($baseNoExt, [System.StringComparison]::OrdinalIgnoreCase) -lt 0 -and
+                    $sfText.IndexOf($baseExt, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) { continue }
+                $pm = [regex]::Match($sfText, '(?im)^project:\s*(\S+)\s*$')
+                if ($pm.Success -and $pm.Groups[1].Value.Trim() -ieq $slug) { $dispositioned = $true; break }
+            }
+            if (-not $dispositioned) {
+                # An [owner]-tagged Open-threads bullet in THIS CHECKPOINT naming the file also counts.
+                $inOT = $false
+                foreach ($ln in $lines) {
+                    if ($ln -match '^##\s') { $inOT = ($ln -match '^##\s+Open threads'); continue }
+                    if (-not $inOT) { continue }
+                    if ($ln -match '^\s*-\s' -and $ln -match "\[($OwnerAlt)\]" -and
+                        ($ln.IndexOf($baseNoExt, [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+                         $ln.IndexOf($baseExt, [System.StringComparison]::OrdinalIgnoreCase) -ge 0)) { $dispositioned = $true; break }
+                }
+            }
+            if (-not $dispositioned) {
+                $firstLine = ($body -split "`r?`n" | Where-Object { $_ -match $recoRx } | Select-Object -First 1)
+                if ($null -eq $firstLine) { $firstLine = '' }
+                $firstLine = $firstLine.Trim()
+                if ($firstLine.Length -gt 90) { $firstLine = $firstLine.Substring(0, 90) }
+                $recoFailures += "$($cf.Name): $firstLine"
+            }
+        }
+    } catch {
+        $reviews += "RECOMMENDATION CHECK SKIPPED -- error scanning research/ against the stamp: $($_.Exception.Message)"
+    }
+}
+if ($recoAdvisory -and $recoFailures.Count -gt 0) {
+    foreach ($f in $recoFailures) { $reviews += "RECOMMENDATION FAILURE (advisory per .checkpoint-verify-ignore: recommendations: advisory): $f" }
+    $recoFailures = @()
+}
 
 # --- 3.12 Prior-art failures (added 2026-11-14) --------------------------------
 # Pairs with the spec skill's step 1b (prior-art pass). A *.md directly under <project>/specs/ or
@@ -492,6 +737,66 @@ if ($paAdvisory -and $paFailures.Count -gt 0) {
     $paFailures = @()
 }
 
+# --- 3.10 JSONL-mode changelog check -------------------------------------------
+# A project is in JSONL mode iff changelog.jsonl sits beside its CHECKPOINT.md (history lives there,
+# append-only, oldest first; see changelog_jsonl.py). Then (a) every line of that file must parse as
+# one JSON object, and (b) the CHECKPOINT's `## Harness changelog` section must hold exactly ONE
+# entry, equal to the file's last record (heading byte-equal, body equal up to trailing whitespace)
+# -- otherwise the next close's swap could drop an entry that exists only inline. Both are HARD
+# FAILS (exit 2). A pointer line that does not name changelog.jsonl is a REVIEW line.
+$jsonlFailures = @()
+$jsonlPath = Join-Path $projRoot 'changelog.jsonl'
+if (Test-Path -LiteralPath $jsonlPath) {
+    $jl = [System.IO.File]::ReadAllLines($jsonlPath, (New-Object System.Text.UTF8Encoding($false)))
+    $lastRec = $null; $badLines = @()
+    for ($i = 0; $i -lt $jl.Count; $i++) {
+        if ($jl[$i].Trim() -eq '') { $badLines += ($i + 1); continue }
+        try {
+            $rec = $jl[$i] | ConvertFrom-Json -ErrorAction Stop
+            if ($rec.kind -ne 'preamble') {
+                if ($null -eq $rec.heading -or $null -eq $rec.body) { $badLines += ($i + 1); continue }
+                $lastRec = $rec
+            }
+        } catch { $badLines += ($i + 1) }
+    }
+    if ($badLines.Count -gt 0) {
+        $jsonlFailures += "changelog.jsonl has $($badLines.Count) line(s) that are not one JSON entry object (line(s) $((@($badLines | Select-Object -First 10)) -join ', ')) -- the file is append-only; repair by hand from version control"
+    }
+    # Inline entries: from the first `### ` in the section to the `Older entries` pointer
+    # (when it sits below them) or the section end.
+    $s = -1; for ($i = 0; $i -lt $lines.Count; $i++) { if ($lines[$i] -match '^## Harness changelog') { $s = $i; break } }
+    if ($s -lt 0) {
+        $jsonlFailures += "JSONL mode but no '## Harness changelog' section -- it must hold the newest entry plus the pointer line"
+    } else {
+        $e = $lines.Count; for ($i = $s + 1; $i -lt $lines.Count; $i++) { if ($lines[$i] -match '^## ') { $e = $i; break } }
+        $p = -1; for ($i = $s + 1; $i -lt $e; $i++) { if ($lines[$i] -match '^Older entries') { $p = $i; break } }
+        $f = -1; for ($i = $s + 1; $i -lt $e; $i++) { if ($lines[$i] -match '^### ') { $f = $i; break } }
+        if ($p -lt 0 -or $lines[$p] -notmatch 'changelog\.jsonl') { $reviews += "JSONL mode: the changelog section has no 'Older entries:' pointer naming changelog.jsonl" }
+        $inl = @()
+        if ($f -ge 0) {
+            $r = if ($p -gt $f) { $p } else { $e }
+            $cur = $null
+            for ($i = $f; $i -lt $r; $i++) {
+                if ($lines[$i] -match '^### ') { if ($cur) { $inl += $cur }; $cur = @{ Heading = $lines[$i]; Body = New-Object System.Collections.Generic.List[string] } }
+                else { $cur.Body.Add($lines[$i]) }
+            }
+            if ($cur) { $inl += $cur }
+        }
+        if ($inl.Count -ne 1) {
+            $jsonlFailures += "JSONL mode keeps exactly ONE inline changelog entry (the newest); found $($inl.Count). Append new entries with changelog_jsonl.py append --checkpoint, which swaps the inline entry"
+        } elseif ($null -eq $lastRec) {
+            $jsonlFailures += "changelog.jsonl has no entry records, so the inline entry is in no durable record"
+        } else {
+            $inBody = ([string]::Join("`n", [string[]]$inl[0].Body.ToArray())).TrimEnd()
+            $recBody = ([string]$lastRec.body).Replace("`r`n", "`n").TrimEnd()
+            if ($inl[0].Heading -ne $lastRec.heading -or $inBody -ne $recBody) {
+                $hd = $inl[0].Heading; if ($hd.Length -gt 90) { $hd = $hd.Substring(0, 90) + '...' }
+                $jsonlFailures += "inline changelog entry is not the last line of changelog.jsonl ($hd) -- append it with changelog_jsonl.py append (never edit the JSONL by hand)"
+            }
+        }
+    }
+}
+
 # --- Report ------------------------------------------------------------------
 Write-Output "[verify-checkpoint] $ckPath"
 Write-Output "[verify-checkpoint] paths checked: $checked"
@@ -499,16 +804,21 @@ if ($defects.Count -gt 0) { $defects | ForEach-Object { Write-Output $_ } }
 if ($reviews.Count -gt 0) { Write-Output '-- REVIEW (reconcile before stamping):'; $reviews | ForEach-Object { Write-Output "  $_" } }
 if ($prompts.Count -gt 0) { Write-Output '-- STALENESS PROMPTS (dispositioned -- informational):'; $prompts | ForEach-Object { Write-Output "  $_" } }
 if ($staleFailures.Count -gt 0) { Write-Output '-- STALENESS FAILURES (exit 2 until each bullet is re-confirmed with [kept YYYY-MM-DD: reason] or pruned):'; $staleFailures | ForEach-Object { Write-Output "  $_" } }
+if ($recoFailures.Count -gt 0) { Write-Output '-- RECOMMENDATION FAILURES (exit 2 until each filed recommendation has an [owner] thread or a tracker note naming it):'; $recoFailures | ForEach-Object { Write-Output "  $_" } }
 if ($tagPrompts.Count -gt 0) { Write-Output '-- TAG PROMPTS (not failures -- gate + complexity pair on every Open-threads bullet, four-run order):'; $tagPrompts | ForEach-Object { Write-Output "  $_" } }
 if ($attrPrompts.Count -gt 0) { Write-Output '-- ATTRIBUTION PROMPTS (not failures -- every verdict names its author + date; live sections only):'; $attrPrompts | ForEach-Object { Write-Output "  $_" } }
+if ($srcPrompts.Count -gt 0) { Write-Output '-- ATTRIBUTION SOURCE PROMPTS (not failures -- a new line crediting the owner quotes their words, names its source, or says "evidence unavailable"):'; $srcPrompts | ForEach-Object { Write-Output "  $_" } }
 if ($verPrompts.Count -gt 0) { Write-Output '-- VERIFIED-CLAIM PROMPTS (not failures -- a Status/Key decisions line saying verified/tested/green/passes/confirmed names what was run and when):'; $verPrompts | ForEach-Object { Write-Output "  $_" } }
 if ($jargonHits.Count -gt 0) { Write-Output '-- JARGON PROMPTS (not failures -- fine if already glossed in the same breath):'; $jargonHits | ForEach-Object { Write-Output "  $_" } }
 if ($paFailures.Count -gt 0) { Write-Output '-- PRIOR-ART FAILURES (exit 2 until each spec gets a sourced Prior art section -- spec skill step 1b):'; $paFailures | ForEach-Object { Write-Output "  $_" } }
-if ($defects.Count -gt 0 -or $staleFailures.Count -gt 0 -or $paFailures.Count -gt 0) {
+if ($jsonlFailures.Count -gt 0) { Write-Output '-- CHANGELOG.JSONL FAILURES (exit 2 -- JSONL mode: the file must parse and its last line must equal the one inline entry):'; $jsonlFailures | ForEach-Object { Write-Output "  $_" } }
+if ($defects.Count -gt 0 -or $staleFailures.Count -gt 0 -or $paFailures.Count -gt 0 -or $recoFailures.Count -gt 0 -or $jsonlFailures.Count -gt 0) {
     $why = @()
     if ($defects.Count -gt 0) { $why += "$($missing.Count) dead path(s)" }
     if ($staleFailures.Count -gt 0) { $why += "$($staleFailures.Count) undispositioned stale bullet(s)" }
     if ($paFailures.Count -gt 0) { $why += "$($paFailures.Count) spec(s) without a sourced Prior art section" }
+    if ($recoFailures.Count -gt 0) { $why += "$($recoFailures.Count) undispositioned recommendation(s)" }
+    if ($jsonlFailures.Count -gt 0) { $why += "$($jsonlFailures.Count) changelog.jsonl failure(s)" }
     Write-Output "[verify-checkpoint] EXIT 2: $($why -join '; '). Fix, then re-run; the finisher comes AFTER this passes."
     exit 2
 }
