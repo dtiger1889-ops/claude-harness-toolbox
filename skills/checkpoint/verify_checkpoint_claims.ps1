@@ -3,7 +3,8 @@
 # Exit contract mirrors finish-checkpoint.ps1: 0 = clean, 2 = defects found (each named).
 # Coverage (honest): dead paths = HARD FAIL; git-state claims = REVIEW block to reconcile;
 # stale-dated / owner-gated threads = PROMPTS unless undispositioned, then HARD FAIL (see below);
-# tag/jargon/attribution prompts = advisory only. Semantic staleness is NOT detected here.
+# tag/jargon/attribution prompts = advisory only; a new spec with no sourced Prior art = HARD FAIL
+# (3.12). Semantic staleness is NOT detected here.
 # 3.6 attribution prompts added 2026-09-09 (unattributed verdicts / undated owner decisions).
 #
 # Staleness disposition gate (built 2026-09-14; motivation: the maintainer's lapse ledger rows 1, 2, 9,
@@ -400,6 +401,97 @@ foreach ($ln in $lines) {
 }
 if ($verTotal -gt $verCap) { $verPrompts += "... and $($verTotal - $verCap) more" }
 
+# --- 3.12 Prior-art failures (added 2026-11-14) --------------------------------
+# Pairs with the spec skill's step 1b (prior-art pass). A *.md directly under <project>/specs/ or
+# <project>/outbound/ holding a line-start `Status:` and `Created: <YYYY-MM-DD>` (anywhere outside
+# fenced code; a build plan may sit between them) dated on or after $priorArtRollout is a HARD FAIL
+# (exit 2) unless it has a `Prior art` heading whose section holds `searched <YYYY-MM-DD>:` followed
+# by a quoted query or a cited sweep file (*.md), and at least one source outside the quoted queries:
+# an http link, a .md path, a file:line, or the literal "nothing found". Keyed on the spec's own
+# Created: date, never file edit time, so older specs and non-spec files are never checked. Fenced
+# code (``` or ~~~, closed only by the same character at the same or greater length) is skipped.
+# Opt-out: `prior-art: advisory` in .checkpoint-verify-ignore (failures then print as REVIEW lines).
+$priorArtRollout = [datetime]'2026-11-14'
+$paFailures = @()
+$paAdvisory = $false
+foreach ($igl in @($igRaw)) {
+    if ($igl -match '^prior-art\s*:\s*advisory\s*$') { $paAdvisory = $true }
+}
+function Get-UnfencedLines([string[]]$L) {
+    $out = New-Object System.Collections.Generic.List[string]
+    $fc = $null; $fl = 0
+    foreach ($ln in $L) {
+        if ($ln -match '^\s*(`{3,}|~{3,})(.*)$') {
+            $run = $Matches[1]; $rest = $Matches[2]
+            if ($null -eq $fc) { $fc = $run[0]; $fl = $run.Length; continue }
+            if ($run[0] -eq $fc -and $run.Length -ge $fl -and $rest.Trim() -eq '') { $fc = $null; continue }
+        }
+        if ($null -eq $fc) { $out.Add($ln) }
+    }
+    return ,$out.ToArray()
+}
+function Get-PriorArtProblem([string[]]$L) {
+    $inSec = $false; $secLevel = 0; $found = $false
+    $sec = New-Object System.Collections.Generic.List[string]
+    foreach ($ln in (Get-UnfencedLines $L)) {
+        # A heading is indented at most 3 spaces; 4+ is an indented code example.
+        if ($ln -match '^\s{0,3}(#{1,6})\s') {
+            $lvl = $Matches[1].Length
+            if ($inSec -and $lvl -gt $secLevel) { $sec.Add($ln); continue }
+            if ($inSec) { break }
+            if ($ln -match '^\s{0,3}#{1,6}\s+Prior art\b') { $inSec = $true; $found = $true; $secLevel = $lvl; $sec.Add($ln) }
+            continue
+        }
+        if ($inSec) { $sec.Add($ln) }
+    }
+    if (-not $found) { return 'no Prior art section' }
+    $t = [string]::Join("`n", [string[]]$sec.ToArray())
+    $sm = [regex]::Match($t, '(?i)searched\s+\d{4}-\d{2}-\d{2}\s*:')
+    if (-not $sm.Success) { return 'Prior art section has no "searched <YYYY-MM-DD>:" record' }
+    $after = $t.Substring($sm.Index + $sm.Length)
+    if ($after -notmatch '"[^"\r\n]+"' -and $after -notmatch '[\w./\\-]+\.md\b') {
+        return 'Prior art "searched" record names no quoted query and no earlier sweep file'
+    }
+    # Sources are judged with the quoted queries removed, so a query naming a file is not a citation.
+    # The record is its "searched" line plus the lines right after it that hold only quoted queries
+    # (bulleted or not); the first line with anything else ends it and keeps its quotes.
+    $inRec = $false
+    $tq = [string]::Join("`n", @($t -split "`n" | ForEach-Object {
+        if ($_ -match '(?i)searched\s+\d{4}-\d{2}-\d{2}\s*:') { $inRec = $true; $_ -replace '"[^"\r\n]*"', ' ' }
+        elseif ($inRec -and $_ -match '^\s*([-*]\s+|\d+[.)]\s+)?("[^"\r\n]*"[\s,;]*)+$') { $_ -replace '"[^"\r\n]*"', ' ' }
+        else { $inRec = $false; $_ } }))
+    # file:line needs a path (a slash) or a file name with an extension, so a label like "Priority:1" is not one.
+    $fileLine = '[\w.-]*[/\\][\w./\\-]*:\d+|\b[\w-]+\.\w+:\d+'
+    if ($tq -notmatch 'https?://' -and $tq -notmatch '[\w./\\-]+\.md\b' -and $tq -notmatch $fileLine -and $tq -notmatch '(?i)nothing found') {
+        return 'Prior art section cites no source (no link, no file path, no "nothing found")'
+    }
+    return $null
+}
+try {
+    foreach ($sdn in @('specs', 'outbound')) {
+        $sDir = Join-Path $projRoot $sdn
+        if (-not (Test-Path -LiteralPath $sDir)) { continue }
+        foreach ($sf in @(Get-ChildItem -LiteralPath $sDir -Filter '*.md' -File -ErrorAction SilentlyContinue)) {
+            $sl = [System.IO.File]::ReadAllLines($sf.FullName)
+            $head = [string[]](Get-UnfencedLines $sl)
+            if (-not ($head | Where-Object { $_ -match '^\s*Status\s*:' })) { continue }
+            $cl = @($head | Where-Object { $_ -match '^\s*Created\s*:\s*(\d{4}-\d{2}-\d{2})' } | Select-Object -First 1)
+            if ($cl.Count -eq 0) { continue }
+            $null = $cl[0] -match '(\d{4}-\d{2}-\d{2})'
+            try { $cd = [datetime]::ParseExact($Matches[1], 'yyyy-MM-dd', $null) } catch { continue }
+            if ($cd -lt $priorArtRollout) { continue }
+            $prob = Get-PriorArtProblem $sl
+            if ($prob) { $paFailures += "$sdn/$($sf.Name): $prob" }
+        }
+    }
+} catch {
+    $reviews += "PRIOR-ART CHECK SKIPPED -- error scanning specs/: $($_.Exception.Message)"
+}
+if ($paAdvisory -and $paFailures.Count -gt 0) {
+    foreach ($f in $paFailures) { $reviews += "PRIOR-ART FAILURE (advisory per .checkpoint-verify-ignore: prior-art: advisory): $f" }
+    $paFailures = @()
+}
+
 # --- Report ------------------------------------------------------------------
 Write-Output "[verify-checkpoint] $ckPath"
 Write-Output "[verify-checkpoint] paths checked: $checked"
@@ -411,10 +503,12 @@ if ($tagPrompts.Count -gt 0) { Write-Output '-- TAG PROMPTS (not failures -- gat
 if ($attrPrompts.Count -gt 0) { Write-Output '-- ATTRIBUTION PROMPTS (not failures -- every verdict names its author + date; live sections only):'; $attrPrompts | ForEach-Object { Write-Output "  $_" } }
 if ($verPrompts.Count -gt 0) { Write-Output '-- VERIFIED-CLAIM PROMPTS (not failures -- a Status/Key decisions line saying verified/tested/green/passes/confirmed names what was run and when):'; $verPrompts | ForEach-Object { Write-Output "  $_" } }
 if ($jargonHits.Count -gt 0) { Write-Output '-- JARGON PROMPTS (not failures -- fine if already glossed in the same breath):'; $jargonHits | ForEach-Object { Write-Output "  $_" } }
-if ($defects.Count -gt 0 -or $staleFailures.Count -gt 0) {
+if ($paFailures.Count -gt 0) { Write-Output '-- PRIOR-ART FAILURES (exit 2 until each spec gets a sourced Prior art section -- spec skill step 1b):'; $paFailures | ForEach-Object { Write-Output "  $_" } }
+if ($defects.Count -gt 0 -or $staleFailures.Count -gt 0 -or $paFailures.Count -gt 0) {
     $why = @()
     if ($defects.Count -gt 0) { $why += "$($missing.Count) dead path(s)" }
     if ($staleFailures.Count -gt 0) { $why += "$($staleFailures.Count) undispositioned stale bullet(s)" }
+    if ($paFailures.Count -gt 0) { $why += "$($paFailures.Count) spec(s) without a sourced Prior art section" }
     Write-Output "[verify-checkpoint] EXIT 2: $($why -join '; '). Fix, then re-run; the finisher comes AFTER this passes."
     exit 2
 }

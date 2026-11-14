@@ -62,7 +62,7 @@ Archive old entries only for overflow, using the bundled byte-preserving mover. 
 & "<skill-dir>/verify_checkpoint_claims.ps1" -Checkpoint "<checkpoint path>"
 ```
 
-Exit 2 blocks completion for dead paths or undispositioned stale dated threads. Fix errors and rerun. Reconcile advisory prompts about state, attribution, tags, jargon, and verification claims; do not relay internal diagnostics as the user-facing report.
+Exit 2 blocks completion for dead paths, undispositioned stale dated threads, or a spec in `specs/` or `outbound/` created on or after 2026-11-14 with no sourced `## Prior art` section (fix it by running the spec skill's prior-art step). Fix errors and rerun. Reconcile advisory prompts about state, attribution, tags, jargon, and verification claims; do not relay internal diagnostics as the user-facing report.
 
 For a dated thread older than 30 days, verify and prune if resolved, or add `[kept YYYY-MM-DD: specific reason]`. A kept date must be within 30 days; its reason must be at least 12 characters and not reused for another bullet. An undated owner thread is advisory.
 
@@ -70,7 +70,7 @@ Configuration:
 - `HARNESS_WORKSPACE_ROOT` overrides the default parent directory used for cross-project paths.
 - `HARNESS_NOTES_ROOT` supplies the notes root when required.
 - `HARNESS_OWNER_TAG` names your own owner tag (for example `Sam` makes `[Sam]` count like `[owner]`).
-- `staleness: advisory` in the project's `.checkpoint-verify-ignore` changes stale-date errors to prompts; dead paths still fail.
+- `staleness: advisory` in the project's `.checkpoint-verify-ignore` changes stale-date errors to prompts; dead paths still fail. `prior-art: advisory` does the same for the prior-art check.
 
 These checks detect structural claims and date patterns, not semantic correctness. Read and assess the evidence yourself.
 

@@ -1,6 +1,6 @@
 ---
 name: spec
-description: Writes or reviews a change or decision spec with explicit tradeoffs and closeout criteria. Use for /spec, "spec this", "write a spec", review of a spec's open questions, or closing, archiving, and promoting a finished spec. Does not authorize implementation by itself.
+description: Writes or reviews a change or decision spec with explicit tradeoffs and closeout criteria. Use for /spec, "spec this", "write a spec", review of a spec's open questions, or closing, archiving, and promoting a finished spec. Runs a prior-art pass (shipped solutions, related projects, notes) before writing. Does not authorize implementation by itself.
 ---
 
 # Spec
@@ -13,6 +13,19 @@ Choose depth by the work:
 
 - **Change spec:** concise problem, intended behavior, scope, implementation plan, and acceptance checks.
 - **Decision spec:** enough evidence to assess the recommendation without repeating the investigation: methods, measurements, rejected approaches, uncertainty, costs, and sources.
+
+## Prior-art pass, before any design
+
+A spec designed from the model's head rebuilds what already exists or repeats a failure someone already published. Run this before writing the design; it is never skipped, and a dry sweep is recorded as "nothing found" with its queries.
+
+- **Reuse first.** If a sweep on this topic already exists (a dated prior-art note, the project state's research block, an interview or outside-view pass this session), cite it with its date and add only what it lacks.
+- Name the problem without any approach, and the approach you already have in mind (the thing on trial).
+- Search the web on three questions: which maintained library, tool or published skill already does this; what the largest platforms in the domain do (for agent tooling: Claude Code, Codex, Cursor and the big open-source frameworks); and how the best practitioners of this kind of work do it. An internal rule change still answers the second; the other two may read "not applicable: internal rule". A change spec takes one to three searches; a decision spec has no cap and keeps a long sweep in its own dated file, with the spec holding the verdict and a pointer.
+- Open the page behind every fact you cite; a search snippet is never a source. A "nothing exists" verdict needs three or more distinct searches.
+- Search the workspace: the state, decisions and specs of the two or three most plausible related projects, with a search that does not skip ignored files.
+- Search the notes folders that hold reference material on the topic (one bounded lookup, one to three terms) and read the best hit, or write "no notes hits" / "notes unavailable".
+- Write the result in the spec's `## Prior art` section, not chat. A verdict that kills or changes an approach the user already approved goes to them as the first decision.
+- Skip it only when closing a spec or when the spec already has the section. Reviewing a spec that lacks one runs this pass first.
 
 For later execution, put the plan near the top. Name exact files, relevant anchors or patterns, configuration defaults, disable/revert path, tests, and acceptance checks. Prefer stable symbols or headings to unexplained line numbers.
 
@@ -28,7 +41,7 @@ Do not invent alternatives for a question with one answer. Support claims that a
 
 ## File shape
 
-Adapt sections to the task; omit empty sections except Closeout.
+Adapt sections to the task; omit empty sections except Closeout and Prior art.
 
 ```
 # <Topic>
@@ -41,6 +54,10 @@ Owner / attribution: <who made decisions or recommendations>
 
 ## Problem and goal
 ## Scope and non-goals
+## Prior art (searched <YYYY-MM-DD>: "<query 1>"; "<query 2>"; workspace and notes paths searched)
+(reuse case: searched <YYYY-MM-DD>: see <path to the earlier sweep file>)
+1. <what exists> -- <link or file:line> -- adopt / adapt / reject: <one line, the good and the bad>
+Verdict: adopt / adapt / build new -- <why; building new names what was found and why it does not fit>
 ## Evidence and rejected approaches
 <for investigated decisions>
 ## Design

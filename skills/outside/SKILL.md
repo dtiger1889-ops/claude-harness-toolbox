@@ -14,4 +14,6 @@ description: Checks prior art, related workspace projects, and relevant notes be
 
 If the request includes fixing a concrete defect, apply the supported fix within the authorized scope and report it. A research request alone does not authorize implementation.
 
+The spec skill carries a condensed copy of steps 2-5 as its prior-art pass; change the two together.
+
 Cite each finding and label gaps. Do not manufacture alternatives when the evidence supports the existing approach. Save a findings document only when project conventions or the user request call for one; table deeper research as the next action rather than starting an unrelated investigation.
