@@ -10,6 +10,8 @@ Set-Content -LiteralPath $md -Value "# Rules`n- one rule"
 # $envs: hashtable of environment variables for the hook process. A plain string is RLG_WORKSPACE_ROOT.
 function Run($tool, $toolInput, $sid, $envs) {
     $payload = @{ tool_name = $tool; tool_input = $toolInput; session_id = $sid } | ConvertTo-Json -Depth 6 -Compress
+    # ASCII-only payload (non-ASCII as \uXXXX) so stdin code pages cannot change what the hook sees.
+    $payload = [regex]::Replace($payload, '[^\x00-\x7F]', { param($m) '\u{0:x4}' -f [int][char]$m.Value })
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = $HostExe; $psi.Arguments = "-NoProfile -File `"$Hook`""
     foreach ($k in 'RLG_WORKSPACE_ROOT', 'HARNESS_WORKSPACE_ROOT', 'RLG_ROOT_SKIP', 'RLG_AUTHOR_NAMES', 'RLG_EXTRA_RULE_PATTERN') { $psi.EnvironmentVariables.Remove($k) }
@@ -121,7 +123,7 @@ $slice = Join-Path $sd 'inbox.md'; Set-Content -LiteralPath $slice -Value '# i'
 $r = Run 'Edit' @{ file_path = $slice; old_string = '# i'; new_string = "# i`n- step (after a session lost it)" } "$s-w1"
 Check 'D1 skill-slices/*.md backstory blocks' ($r.code -eq 2) "code=$($r.code) err=$($r.err)"
 $core = Join-Path $tmp 'skill-core.md'; Set-Content -LiteralPath $core -Value '# c'
-$r = Run 'Edit' @{ file_path = $core; old_string = '# c'; new_string = "# c`n- step (Alex, 2026-11-17)" } "$s-w2"
+$r = Run 'Edit' @{ file_path = $core; old_string = '# c'; new_string = "# c`n- step (Alex decision, 2026-11-17)" } "$s-w2"
 Check 'D2 skill-core.md credit blocks' ($r.code -eq 2) "code=$($r.code) err=$($r.err)"
 $td = Join-Path $tmp 'rule-modules'; New-Item -ItemType Directory -Path $td | Out-Null
 $vr = Join-Path $td 'write safety.md'; Set-Content -LiteralPath $vr -Value '# v'
@@ -176,11 +178,11 @@ $r = RootAdd '- See `notes/file.md` for detail.' "$s-f6e"
 Check 'F6e backticked file path is not a domain' ($r.code -eq 0) "code=$($r.code) err=$($r.err)"
 $r = Run 'Edit' @{ file_path = $root; old_string = 'Keep navigation'; new_string = 'Keep example.dev navigation' } "$s-f7" $rootEnv
 Check 'F7 mid-line edit that makes a rule name one domain blocks' ($r.code -eq 2 -and $r.err -match 'colocated') "code=$($r.code) err=$($r.err)"
-$r = Run 'Edit' @{ file_path = $root; old_string = '- Keep navigation smooth.'; new_string = '- Keep site_alpha smooth (Alex, 2026-11-17).' } "$s-f8" $rootEnv
+$r = Run 'Edit' @{ file_path = $root; old_string = '- Keep navigation smooth.'; new_string = '- Keep site_alpha smooth (Alex decision, 2026-11-17).' } "$s-f8" $rootEnv
 Check 'F8a credit warning fires first' ($r.code -eq 2 -and $r.err -match 'adds a credit') "code=$($r.code) err=$($r.err)"
 $r = Run 'Edit' @{ file_path = $root; old_string = '- Another general rule.'; new_string = "- Another general rule.`n- Keep tool_beta pages tidy." } "$s-f8" $rootEnv
 Check 'F8b a different edit in the same session gets its own root warning' ($r.code -eq 2 -and $r.err -match 'colocated') "code=$($r.code) err=$($r.err)"
-$r = Run 'Edit' @{ file_path = $root; old_string = '- Keep navigation smooth.'; new_string = '- Keep site_alpha smooth (Alex, 2026-11-17).' } "$s-f8" $rootEnv
+$r = Run 'Edit' @{ file_path = $root; old_string = '- Keep navigation smooth.'; new_string = '- Keep site_alpha smooth (Alex decision, 2026-11-17).' } "$s-f8" $rootEnv
 Check 'F8c re-issue of the first edit passes' ($r.code -eq 0) "code=$($r.code) err=$($r.err)"
 $ad = Join-Path $tmp 'a-b'; $bd = Join-Path $tmp 'a_b'; New-Item -ItemType Directory -Path $ad, $bd | Out-Null
 $sa = Join-Path $ad 'SKILL.md'; $sb = Join-Path $bd 'SKILL.md'; Set-Content -LiteralPath $sa -Value '# s'; Set-Content -LiteralPath $sb -Value '# s'
@@ -220,6 +222,27 @@ $r = Run 'Edit' @{ file_path = $wf; old_string = 'now'; new_string = "now`n- als
 Check 'F4d new wrapped quote across two lines blocks' ($r.code -eq 2 -and $r.err -match 'quoted span') "code=$($r.code) err=$($r.err)"
 $r = Run 'Edit' @{ file_path = $qf; old_string = '- keep "alpha beta gamma delta epsilon zeta eta theta" (Alex, 2026-11-17)'; new_string = '- keep "alpha beta gamma delta epsilon zeta eta theta"' } "$s-f5"
 Check 'F5 stripping a credit from a line with an old quote passes' ($r.code -eq 0) "code=$($r.code) err=$($r.err)"
+
+# --- Sol audit findings: ISO dates, curly quotes under Windows PowerShell, invalid optional pattern ---
+$r = Run 'Edit' @{ file_path = $sk; old_string = '# s'; new_string = "# s`n- Use version 2 (released 2026-01-05)." } "$s-g1"
+Check 'G1 plain dated parenthetical passes' ($r.code -eq 0) "code=$($r.code) err=$($r.err)"
+$r = Run 'Edit' @{ file_path = $md; old_string = '- one rule'; new_string = '- Read (-> decisions/2026-01-05.md).' } "$s-g2"
+Check 'G2 pointer containing a date passes' ($r.code -eq 0) "code=$($r.code) err=$($r.err)"
+$r = Run 'Edit' @{ file_path = $md; old_string = '- one rule'; new_string = '- one rule (Jane decision -- 2026-01-05)' } "$s-g3"
+Check 'G3 name + decision + ISO date credit blocks' ($r.code -eq 2 -and $r.err -match 'adds a credit') "code=$($r.code) err=$($r.err)"
+$r = Run 'Edit' @{ file_path = $md; old_string = '- one rule'; new_string = '- one rule (model analysis, 2026-01-05)' } "$s-g4"
+Check 'G4 model analysis ISO date credit blocks' ($r.code -eq 2 -and $r.err -match 'adds a credit') "code=$($r.code) err=$($r.err)"
+$r = Run 'Edit' @{ file_path = $md; old_string = '- one rule'; new_string = '- one rule (Sam, 2026-01-05)' } "$s-g5" @{ RLG_AUTHOR_NAMES = 'Sam' }
+Check 'G5 configured name with ISO date blocks' ($r.code -eq 2 -and $r.err -match 'adds a credit') "code=$($r.code) err=$($r.err)"
+$r = Run 'Edit' @{ file_path = $md; old_string = '- one rule'; new_string = '- one rule (2026-01-05 instruction)' } "$s-g6"
+Check 'G6 date then credit word blocks' ($r.code -eq 2 -and $r.err -match 'adds a credit') "code=$($r.code) err=$($r.err)"
+$lq = [string][char]0x201C; $rq = [string][char]0x201D
+$r = Run 'Edit' @{ file_path = $sk; old_string = '# s'; new_string = "# s`n- Say ${lq}one two three four five six seven eight${rq}." } "$s-g7"
+Check 'G7 curly-quoted 8+ word span blocks' ($r.code -eq 2 -and $r.err -match 'quoted span') "code=$($r.code) err=$($r.err)"
+$nf = Join-Path $tmp 'bad/SKILL.md'
+$r = Run 'Write' @{ file_path = $nf; content = "# n`n- " + ('x' * 601) } "$s-g8" @{ RLG_EXTRA_RULE_PATTERN = '[' }
+Check 'G8 invalid extra pattern still refuses a long bullet' ($r.code -eq 2 -and $r.err -match 'limit 600') "code=$($r.code) err=$($r.err)"
+Check 'G8b invalid extra pattern is noted on stderr' ($r.err -match 'RLG_EXTRA_RULE_PATTERN') "err=$($r.err)"
 
 Remove-Item -LiteralPath $tmp -Recurse -Force
 Write-Host "---- $pass passed, $fail failed"

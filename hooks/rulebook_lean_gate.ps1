@@ -40,7 +40,11 @@ try {
     $isSkill = $name -ieq 'SKILL.md'
     $isSlice = ($norm -match '(?i)/skill-slices/[^/]+\.md$') -or ($name -ieq 'skill-core.md')
     $isExtra = $false
-    if ($env:RLG_EXTRA_RULE_PATTERN) { $isExtra = $norm -match $env:RLG_EXTRA_RULE_PATTERN }
+    if ($env:RLG_EXTRA_RULE_PATTERN) {
+        # An invalid optional pattern is ignored with a note; the core checks still run.
+        try { $isExtra = $norm -match $env:RLG_EXTRA_RULE_PATTERN }
+        catch { $isExtra = $false; [Console]::Error.WriteLine('RULEBOOK LEAN GATE: RLG_EXTRA_RULE_PATTERN is not a valid regex; ignored.') }
+    }
     $isInstr = $isSkill -or $isSlice -or ($isExtra -and -not $isRulebook)
     $isRoot = $rootDir -and ($norm -ieq "$rootDir/CLAUDE.md")
     $isHook = ($norm -match '(?i)/hooks/') -and ($name -match '(?i)\.(ps1|py|sh)$') -and ($name -notmatch '(?i)_tests?\.')
@@ -103,7 +107,10 @@ try {
     $names = @('user', 'owner', 'model', 'Codex', 'Claude')
     if ($env:RLG_AUTHOR_NAMES) { $names += @($env:RLG_AUTHOR_NAMES -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } | ForEach-Object { [regex]::Escape($_) }) }
     $who = ($names -join '|') + '|[A-Z][a-z]+ (decision|correction|instruction)'
-    $credit = "(?i)(\(($who)[^)]{0,120}(\d{4}|$months)|\([^()]{0,120}\b(19|20)\d\d-\d\d-\d\d\b|\bn=\d+|\blapses? \d+|root CHECKPOINT v\d+)"
+    # An ISO date in a parenthetical is a credit only beside a credit word or a configured name, and never inside a (-> ...) pointer.
+    $cw = 'decision|analysis|correction|instruction|recommendation|wording|author|' + ($names -join '|')
+    $iso = '\b(19|20)\d\d-\d\d-\d\d\b'
+    $credit = "(?i)(\(($who)[^)]{0,120}(\d{4}|$months)|\((?!\s*->)[^()]{0,120}\b($cw)\b[^()]{0,60}$iso|\((?!\s*->)[^()]{0,60}$iso[^()]{0,60}\b($cw)\b|\bn=\d+|\blapses? \d+|root CHECKPOINT v\d+)"
     $reasons = @(); $cats = @(); $hints = @{}
     function Add-Reason([string]$cat, [string]$text, [string]$hintText) { $script:reasons += $text; $script:cats += $cat; if ($hintText) { $script:hints[$cat] = $hintText } }
     if ($isRulebook) {
@@ -117,14 +124,14 @@ try {
     if ($isRulebook -or $isInstr) {
         # Quoted span of 8+ words, or <Name>, <date>: "..." that is new in the resulting text; (exact wording) exempts its line.
         $qHint = ' Quotes: keep the quote in the changelog or lapse row the pointer names; a span the rule enforces word-for-word stays if its line carries the marker (exact wording).'
-        $datedQuote = '\b[A-Z][A-Za-z]+,\s*(?=[^":\r\n]{0,30}(\d{4}|' + $months + '))[^":\r\n]{1,30}:\s*["“]'
+        $datedQuote = '\b[A-Z][A-Za-z]+,\s*(?=[^":\r\n]{0,30}(\d{4}|' + $months + '))[^":\r\n]{1,30}:\s*["\u201C]'
         $oldBlocks = [Collections.Generic.HashSet[string]]::new([string[]]@($oldText -split "`r?`n\s*`r?`n"))
         $found = ''
         foreach ($blk in ($newText -split "`r?`n\s*`r?`n")) {
             if ($oldBlocks.Contains($blk)) { continue }
             $hits = @()
             foreach ($m in [regex]::Matches($blk, $datedQuote)) { $hits += , @($m.Index, $m.Length, $m.Value, 'dated quote') }
-            foreach ($m in [regex]::Matches($blk, '["“]([^"“”]{1,800})["”]')) {
+            foreach ($m in [regex]::Matches($blk, '["\u201C]([^"\u201C\u201D]{1,800})["\u201D]')) {
                 if (@($m.Groups[1].Value -split '\s+' | Where-Object { $_ }).Count -ge 8) { $hits += , @($m.Index, $m.Length, $m.Groups[1].Value, 'span') }
             }
             foreach ($h in $hits) {
