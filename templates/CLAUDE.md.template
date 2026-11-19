@@ -14,6 +14,7 @@
 - [thing that surprised you the first time and would surprise a fresh session]
 - [environment-specific quirk, e.g. "cloud sandbox 403s on this domain — runs fine from home"]
 - [explicit don't-do, e.g. "don't push to main without explicit OK"]
+- Rules here carry a pointer `(-> vN)` or `(-> <path>)`, never their history: who decided, when, quotes and incidents live in the CHECKPOINT changelog entry the pointer names.
 
 ## Pointers
 

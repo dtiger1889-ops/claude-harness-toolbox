@@ -57,6 +57,31 @@ Claude Code warned on memory files at roughly 40,000 characters or 5% of the sel
 model's context window. Treat platform thresholds as version-sensitive; the important
 measure is the context charged to every turn.
 
+## Keep history out of loaded text
+
+Text that loads into every session (CLAUDE.md files, SKILL.md and skill files, hook
+output, helper-agent brief blocks) carries a rule and at most a short pointer: `(-> vN)`
+for a changelog version, or `(-> <path>)` for a record file. Who decided, when, the
+user's exact words, lapse numbers, evidence and the incident story live only in the
+changelog entry, lapse row or decision record the pointer names.
+
+The cause to watch for is the harness's own rules. A rule that says "quote the user's
+exact words beside the line" or "credit the author and date" makes every new rule carry
+its history inline, and every session then pays for it. Write those rules the other way:
+quote the words in the changelog entry; the rule line carries the pointer.
+
+- Keep a rule's reason to one generalizing clause; the rest is history.
+- Keep a quote in the rule only when the rule enforces that exact wording, and mark the
+  line `(exact wording)`.
+- Hook output re-enters context every time the hook fires: print the directive and a
+  file pointer only.
+- Specs, decision records, changelogs and research files are exempt; they are where the
+  history belongs, and they are read on demand.
+
+`hooks/rulebook_lean_gate.ps1` enforces this at edit time (Windows). It blocks once an edit
+adding a credit, backstory wording or a new long quote, so a deliberate edit goes through
+on re-issue, and it refuses every time a list item over 600 characters.
+
 ## Sweep contradictory imperatives
 
 Compression does not catch rules that are individually clear but collectively

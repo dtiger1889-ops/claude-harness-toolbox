@@ -16,7 +16,7 @@ description: Corrects a repeated or documented mistake and strengthens the faili
    - Cross-project behavior: the shared instructions, only when every affected workflow needs it.
 
    When two homes are plausible, pick the one closest to where the bad action physically happens and name the alternative in one line.
-5. **Write the rule tightly.** A rule written from the user's correction quotes the user's exact words beside it and drops every clause that restricts more than they did. When the rule already exists, rewrite that whole rule as short bullets (trigger, directive, exceptions, one provenance note); never bolt a clause onto its end. One idea per sentence; one tight line in the right place beats a paragraph in three places.
+5. **Write the rule tightly.** A rule written from the user's correction quotes the user's exact words in the changelog entry or lapse row; the rule line carries a pointer `(-> vN)` or `(-> <path>)` and drops every clause that restricts more than the user's words do. When the rule already exists, rewrite that whole rule as short bullets (trigger, directive, exceptions, one pointer); never bolt a clause onto its end. One idea per sentence; one tight line in the right place beats a paragraph in three places.
 6. **Verify reach and behavior.** Check that the failing workflow actually loads or fires the change. For enforcement, test a violating case and a legitimate exception. Record any untested limitation.
 7. **Report briefly:** correction applied; source and diagnosed gap; durable change and verification. No promises about future behavior; the changed file is the promise.
 

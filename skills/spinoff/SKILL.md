@@ -40,8 +40,9 @@ brief, and it acts on every line of that brief as an instruction.
      procedure the user did not name, and add no task they did not ask for (no verify, audit or
      cleanup). Recognize a skill they name without its slash; a word that only sounds like a
      skill is not a request for it; when unsure, pass their words through as-is.
-   - **A line written from a correction** quotes the user's exact words beside it and cuts every
-     clause that restricts more than they did.
+   - **A line written from a correction** quotes the user's exact words in the changelog entry or
+     lapse row; the brief line carries a pointer `(-> vN)` or `(-> <path>)` and cuts every clause
+     that restricts more than the user's words do.
    - **Known so far comes only from this chat.** Never fill it from the target project's files;
      the new session reads its own state, and a paraphrase arrives as a false fact. Resolve every
      "that", "this" or "it" in the ask to its referent first; write "not in this chat" only after
